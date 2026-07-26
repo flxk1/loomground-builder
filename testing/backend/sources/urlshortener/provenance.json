@@ -1,0 +1,9 @@
+{
+  "name": "urlshortener",
+  "generated": true,
+  "source": "sources/urlshortener/manual.md",
+  "generator": "tool-designer/backend-from-model",
+  "class": "scaffold",
+  "enforcement_point": false,
+  "notice": "Generated scaffold — not an enforcement point. Do not use to withhold, gate, or enforce."
+}

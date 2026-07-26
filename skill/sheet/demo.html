@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>twin-sheet/1 — component demo</title>
+<link rel="stylesheet" href="binding-default.css">
+<link rel="stylesheet" href="twin-sheet.css">
+</head>
+<body class="twin" data-density="comfortable" style="margin:0">
+<div class="tw-page">
+  <div id="hdr"></div>
+  <div class="tw-row">
+    <h3>Density</h3>
+    <button class="tw-btn" id="density-toggle">compact ⇄ comfortable</button>
+    <span class="tw-src" id="density-now">comfortable</span>
+    <span class="tw-spacer"></span>
+    <span class="tw-src">twin-sheet/1 demo — every component, placeholder data, default binding</span>
+  </div>
+
+  <section class="tw-card">
+    <h3>Lamps — vocabulary as data, roles from the pack mapping</h3>
+    <div class="tw-row" id="lamps"></div>
+    <div class="tw-row" id="steps"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Tier-0 palette</h3>
+    <div id="palette"></div>
+  </section>
+
+  <div class="tw-grid">
+    <section class="tw-card">
+      <h3>Table — projection rows</h3>
+      <table class="tw-table"><thead><tr><th>rule</th><th>role</th><th>status</th></tr></thead>
+      <tbody id="tbl"></tbody></table>
+    </section>
+    <section class="tw-card">
+      <h3>Call log</h3>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <section>
+    <h3 style="margin-bottom:8px">Tier-2 rack — one shelf per facade</h3>
+    <div id="rack" style="display:flex;flex-direction:column;gap:var(--g-block)"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Op surface — opened from a row or the palette</h3>
+    <div id="surface"></div>
+  </section>
+</div>
+
+<script src="twin-sheet.js"></script>
+<script>
+(function () {
+  var T = window.TwinSheet;
+
+  document.getElementById("hdr").appendChild(T.header({
+    title: "Demo Twin", pin: "demo-target 0.0 · twin-sheet/1",
+    live: false, stamped: false }));
+
+  /* vocabulary→role mapping arrives as data (here: a sample pack mapping) */
+  var vocab = [["prohibited","stop"],["reserved","stop"],["human","info"],
+    ["refused","stop"],["ask","warn"],["auto","ok"]];
+  var lamps = document.getElementById("lamps");
+  vocab.forEach(function (v) { lamps.appendChild(T.lamp(v[0], v[1])); });
+  var stepsRow = document.getElementById("steps");
+  for (var g = 0; g <= 4; g++) stepsRow.appendChild(T.steps(5, g, "L" + g));
+
+  var catalogue = [
+    { facade: "alpha", name: "alpha.list", note: "enumerate things", mutating: false, params: ["filter"] },
+    { facade: "alpha", name: "alpha.get", note: "read one thing", mutating: false, params: ["id"] },
+    { facade: "alpha", name: "alpha.set", note: "change a thing — recorded", mutating: true, params: ["id", "value"],
+      consequence: "On a live connection this call would be recorded on the target's chain." },
+    { facade: "beta", name: "beta.status", note: "current status", mutating: false, params: [] },
+    { facade: "beta", name: "beta.reset", note: "reset state — destructive", mutating: true, destructive: true,
+      params: ["scope"], consequence: "Destroys current state. On a live connection this is recorded and not undoable." }
+  ];
+
+  var log = T.logList();
+  document.getElementById("log").appendChild(log);
+  var tbl = document.getElementById("tbl");
+  [["retention-30d","auditor","satisfied"],["human-signoff","approver","pending"],
+   ["no-egress","agent","live"]].forEach(function (r) {
+    var tr = document.createElement("tr");
+    r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+    tbl.appendChild(tr);
+  });
+
+  function mockDispatch(fn, params) {
+    return Promise.resolve(fn.name.indexOf("get") !== -1 && !params.id
+      ? { ok: false, body: 'refused: missing required param "id" (demo verbatim refusal)' }
+      : { ok: true, body: JSON.stringify({ demo: true, fn: fn.name, params: params }, null, 2) });
+  }
+  function openSurface(fn) {
+    var host = document.getElementById("surface");
+    host.replaceChildren(T.opSurface(fn, {
+      dispatch: mockDispatch,
+      log: function (f, p, r) { T.logEntry(log, f, p, r); },
+      onCancel: function (f) { T.logEntry(log, f, {}, null); }
+    }));
+  }
+
+  var rack = document.getElementById("rack");
+  ["alpha", "beta"].forEach(function (fac, i) {
+    rack.appendChild(T.shelf(fac, catalogue.filter(function (f) { return f.facade === fac; }),
+      openSurface, i === 0));
+  });
+  document.getElementById("palette").appendChild(T.palette(catalogue, openSurface));
+  openSurface(catalogue[2]);
+
+  document.getElementById("density-toggle").addEventListener("click", function () {
+    var b = document.body;
+    var next = b.getAttribute("data-density") === "compact" ? "comfortable" : "compact";
+    b.setAttribute("data-density", next);
+    document.getElementById("density-now").textContent = next;
+  });
+})();
+</script>
+</body>
+</html>

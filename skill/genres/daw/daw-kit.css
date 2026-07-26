@@ -1,0 +1,98 @@
+/* daw-kit/1 — the DAW genre substrate (skill/genres/daw/). Its own small
+   vocabulary — transport bar, track strip (fader/pan/mute), routing
+   assignment — NOT twin-sheet/1 (the governance/list rack kit: racks,
+   op-surfaces, lamps) and NOT synth-kit/1 (the modular-synth kit: knob,
+   cable, module). This file styles ONLY that vocabulary; it references
+   nothing but the neutral --twin-* interface and the sheet's own
+   type/spacing scale (--ts-*, --sp-*, --g-*, --p-card), already defined once
+   by the component sheet (skill/sheet/twin-sheet.css) inside its .twin scope
+   — no new scale, no parallel size system, per skill/SKILL.md step 4's
+   composition discipline. twin-sheet/1's components (opRow/opSurface/
+   confirmGate/shelf/lamp) are still used verbatim wherever this genre needs
+   them (the read rack, the confirm dialogs, the mute-state lamp) — this kit
+   only adds the DIRECT-MANIPULATION controls (transport button, fader, pan,
+   mute toggle, routing assignment) the rack and synth genres never needed.
+   Every control this kit renders carries the Control grammar's three hooks
+   (data-op, data-param, data-gesture — skill/SKILL.md's "Control grammar"
+   section); that is the ONLY thing that makes a fader or a transport button
+   drivable by the live gate. ADDITIVE: does not modify twin-sheet.css or
+   synth-kit.css. */
+
+/* -- transport: a row of play/stop buttons -- */
+.daw-transport { display: flex; gap: var(--sp-3); align-items: center; }
+.daw-transport-btn { display: flex; flex-direction: column; gap: var(--sp-2); align-items: center; }
+.transport-commit { min-width: 5.5em; }
+.transport-slot { width: 100%; }
+
+/* -- strip: a labelled group of one track's controls -- */
+.daw-mixer { display: grid; gap: var(--g-sect); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.daw-strip { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card);
+  display: flex; flex-direction: column; gap: var(--g-block); }
+.daw-strip > h3 { font-size: var(--ts-emph); }
+
+/* -- fader: a vertical-feeling gain control, direct-manipulation, no modal
+   surface — the value input and the fixed identity (track) sit right beside
+   the control, matching a real fader's "the value is always visible" shape.
+   .fader-face is a purely decorative meter; the actual driveable control is
+   the "Fade" button carrying data-op + data-gesture="fade". -- */
+.daw-fader { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.fader-face { width: 100%; height: 40px; border-radius: var(--twin-radius);
+  background: linear-gradient(90deg, var(--twin-accent) 0%, var(--twin-line) 0%);
+  border: 1px solid var(--twin-line); }
+.fader-label { font-size: var(--ts-label); color: var(--twin-txt-dim); text-align: center; }
+.fader-value-row { display: flex; align-items: center; gap: var(--sp-2); }
+.fader-value { width: 6em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.fader-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.fader-unit { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.fader-commit { width: 100%; }
+.fader-slot { width: 100%; }
+
+/* -- pan: a small numeric position control beside its commit -- */
+.daw-pan { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.pan-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.pan-value { width: 5em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.pan-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.pan-commit { width: 100%; }
+.pan-slot { width: 100%; }
+
+/* -- mute: a toggle button + its current-state lamp (re-read from the last
+   real state, never computed locally) -- */
+.daw-mute { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.mute-state { display: flex; justify-content: center; }
+.mute-commit { width: 100%; }
+.mute-slot { width: 100%; }
+
+/* -- routing: an assignment control (data-gesture="route") — two endpoint
+   fields (track/bus) beside a single commit, or, for an existing route, the
+   two endpoints rendered read-only with an "Unroute" commit. -- */
+.daw-routing { display: flex; flex-direction: column; gap: var(--g-block); }
+.daw-route { display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.daw-route-new { border-style: dashed; }
+.route-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.route-fields { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.route-field { flex: 1; min-width: 6em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); }
+.route-field:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.route-arrow { color: var(--twin-accent); font-weight: 600; }
+.route-assignment { font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt); flex: 1; }
+.route-slot { width: 100%; }
+.daw-route-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* -- state / witness read view: current mix state, always rendered from the
+   last real mix.state response, never computed locally -- */
+.daw-state-table { width: 100%; }
+.daw-rev { font-size: var(--ts-label); color: var(--twin-txt-dim); }

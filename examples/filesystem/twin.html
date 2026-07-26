@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case Archive Console — twin of secure-filesystem-server 0.2.0</title>
+<style>
+:root{
+  /* identity tokens — swap these to restyle the twin */
+  --paper:#FBFAF6;
+  --panel:#FFFFFF;
+  --ink:#26241E;
+  --ink-soft:#6D6759;
+  --rule:#E3DFD3;
+  --accent:#4A5568;
+  --read-ink:#2F5A3D;   --read-bg:#EDF3EE;   --read-rule:#BAD1C0;
+  --gate-ink:#7A5C12;   --gate-bg:#F8F2DE;   --gate-rule:#DCC98D;
+  --dest-ink:#8C3B2E;   --dest-bg:#F9EDEA;   --dest-rule:#DDB1A8;
+  --fail-ink:#8C3B2E;   --fail-bg:#F9EDEA;   --fail-rule:#C97B6D;
+  --chip-bg:#F1EFE7;
+  --font-heading:Georgia,'Times New Roman',serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius:4px;
+  --radius-chip:2px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55}
+h1,h2,h3{font-family:var(--font-heading);font-weight:600;margin:0 0 .4em}
+h1{font-size:1.7rem}h2{font-size:1.25rem}h3{font-size:1.05rem}
+header.page{padding:28px 32px 0;max-width:1080px;margin:0 auto}
+.pin{color:var(--ink-soft);font-size:.85rem;margin-bottom:14px}
+.banner{border:1px solid var(--gate-rule);background:var(--gate-bg);color:var(--gate-ink);border-radius:var(--radius);padding:10px 14px;font-size:.9rem;margin-bottom:18px}
+nav.views{max-width:1080px;margin:0 auto;padding:0 32px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+nav.views button{font-family:var(--font-heading);font-size:.95rem;background:none;border:none;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer;color:var(--ink-soft)}
+nav.views button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+main{max-width:1080px;margin:0 auto;padding:22px 32px 60px}
+section.view{display:none}
+section.view.active{display:block}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px}
+pre.verbatim{font-family:var(--font-mono);font-size:.82rem;background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius);padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:8px 0 0}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:.72rem;background:var(--chip-bg);border:1px solid var(--rule);border-radius:var(--radius-chip);padding:1px 7px;color:var(--ink-soft);margin-left:6px}
+.lamp{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.03em;border-radius:var(--radius-chip);padding:2px 8px;border:1px solid}
+.lamp.read{color:var(--read-ink);background:var(--read-bg);border-color:var(--read-rule)}
+.lamp.gate{color:var(--gate-ink);background:var(--gate-bg);border-color:var(--gate-rule)}
+.lamp.dest{color:var(--dest-ink);background:var(--dest-bg);border-color:var(--dest-rule)}
+.lamp.fail{color:var(--fail-ink);background:var(--fail-bg);border-color:var(--fail-rule)}
+.failbox{border:1px solid var(--fail-rule);background:var(--fail-bg);color:var(--fail-ink);border-radius:var(--radius);padding:10px 14px;margin-top:10px}
+.notice{border:1px solid var(--rule);background:var(--chip-bg);color:var(--ink-soft);border-radius:var(--radius);padding:10px 14px;margin-top:10px}
+button.ctl{font-family:var(--font-body);font-size:.88rem;background:var(--panel);border:1px solid var(--rule);border-radius:var(--radius);padding:6px 12px;cursor:pointer;color:var(--ink)}
+button.ctl:hover{border-color:var(--accent)}
+button.ctl[aria-pressed="true"]{border-color:var(--accent);background:var(--chip-bg)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+label{display:block;font-size:.85rem;color:var(--ink-soft);margin:10px 0 3px}
+input[type=text],textarea,select{width:100%;font-family:var(--font-mono);font-size:.83rem;border:1px solid var(--rule);border-radius:var(--radius);padding:7px 9px;background:var(--panel);color:var(--ink)}
+textarea{min-height:70px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{border:1px solid var(--rule);padding:7px 9px;text-align:left;vertical-align:top}
+th{font-family:var(--font-heading);background:var(--chip-bg)}
+.doclist{list-style:none;margin:0;padding:0}
+.doclist li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.doclist .name{font-family:var(--font-mono);font-size:.82rem;flex:1;min-width:220px}
+.overlay{position:fixed;inset:0;background:rgba(38,36,30,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:10}
+.overlay.open{display:flex}
+.confirm{background:var(--panel);border-radius:var(--radius);max-width:640px;width:100%;padding:20px 22px;border-top:6px solid var(--gate-rule)}
+.confirm.dest{border-top-color:var(--fail-rule)}
+.row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.callog li{margin-bottom:10px}
+footer.pagefoot{max-width:1080px;margin:0 auto;padding:0 32px 40px;color:var(--ink-soft);font-size:.8rem}
+.srch{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.srch>div{flex:1;min-width:220px}
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Case Archive Console</h1>
+  <p class="pin">Twin of <strong>secure-filesystem-server</strong> v0.2.0 · MCP protocol 2025-06-18 · allowed directory: <span style="font-family:var(--font-mono)">/private/tmp/loomground-builder-example/scratchpad/case-sandbox</span><span class="chip">fixture: initialize.json</span></p>
+  <div class="banner" role="status"><strong>FIXTURE-BACKED.</strong> Every state view on this page replays responses captured from the live server on 2026-07-23. There is no live connection: confirmed filing actions terminate in an explicit NOT&nbsp;SENT state and change nothing.</div>
+</header>
+<nav class="views" aria-label="Views">
+  <button data-view="overview" aria-current="true">Overview</button>
+  <button data-view="browse" aria-current="false">Browse</button>
+  <button data-view="reading" aria-current="false">Reading room</button>
+  <button data-view="search" aria-current="false">Search</button>
+  <button data-view="filing" aria-current="false">Filing</button>
+  <button data-view="surface" aria-current="false">Surface table</button>
+</nav>
+<main>
+  <section class="view active" id="view-overview">
+    <div class="card">
+      <h2>Archive root</h2>
+      <p><span class="lamp read">READ — ungated</span> <code>list_allowed_directories</code><span class="chip">fixture: allowed-dirs.json</span></p>
+      <pre class="verbatim" id="out-allowed"></pre>
+    </div>
+    <div class="card">
+      <h2>Archive tree</h2>
+      <p><span class="lamp read">READ — ungated</span> <code>directory_tree</code><span class="chip">fixture: tree-root.json</span></p>
+      <p style="color:var(--ink-soft);font-size:.85rem">The server answers this call with a JSON document; it is shown here exactly as the server returned it.</p>
+      <pre class="verbatim" id="out-tree"></pre>
+    </div>
+  </section>
+
+  <section class="view" id="view-browse">
+    <div class="card">
+      <h2>Browse a folder</h2>
+      <p>Listing mode:
+        <button class="ctl" id="mode-plain" aria-pressed="true">Plain listing (list_directory)</button>
+        <button class="ctl" id="mode-sizes" aria-pressed="false">With sizes (list_directory_with_sizes)</button>
+      </p>
+      <div id="browse-folders" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"></div>
+      <div id="browse-out"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-reading">
+    <div class="card">
+      <h2>Documents on file</h2>
+      <ul class="doclist" id="doc-list"></ul>
+      <div id="doc-out"></div>
+    </div>
+    <div class="card">
+      <h2>Case bundles</h2>
+      <p style="color:var(--ink-soft);font-size:.85rem">Opens every captured document of a case in one call (<code>read_multiple_files</code>).</p>
+      <div id="bundle-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"></div>
+      <div id="bundle-out"></div>
+    </div>
+    <div class="card">
+      <h2>Open by path</h2>
+      <p style="color:var(--ink-soft);font-size:.85rem"><span class="lamp read">READ — ungated</span> <code>read_text_file</code>. Fixture mode: only paths captured on 2026-07-23 can be replayed; anything else is refused.</p>
+      <div class="srch">
+        <div><label for="path-input">Absolute path</label><input type="text" id="path-input" value=""></div>
+        <button class="ctl" id="path-open">Open</button>
+      </div>
+      <div id="path-out"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-search">
+    <div class="card">
+      <h2>Search the archive</h2>
+      <p style="color:var(--ink-soft);font-size:.85rem"><span class="lamp read">READ — ungated</span> <code>search_files</code> matches file and folder <em>names</em> with glob patterns relative to the archive root (the server's own guidance: <code>*.ext</code> for the top level, <code>**/*.ext</code> for all subfolders). Fixture mode: only captured patterns replay.</p>
+      <div class="srch">
+        <div><label for="search-input">Pattern</label><input type="text" id="search-input" value=""></div>
+        <button class="ctl" id="search-run">Search</button>
+      </div>
+      <p style="margin:12px 0 4px;color:var(--ink-soft);font-size:.85rem">Captured searches:</p>
+      <div id="search-presets" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div id="search-out"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-filing">
+    <div class="card">
+      <h2>New case folder</h2>
+      <p><span class="lamp gate">WRITE — GATED</span> <code>create_directory</code></p>
+      <label for="cd-path">Full path of the folder to create</label>
+      <input type="text" id="cd-path">
+      <div class="row"><button class="ctl primary" id="cd-go">Review and confirm…</button></div>
+    </div>
+    <div class="card">
+      <h2>File document into case</h2>
+      <p><span class="lamp dest">DESTRUCTIVE — GATED</span> <code>move_file</code></p>
+      <label for="mv-src">Document (source)</label>
+      <select id="mv-src"></select>
+      <label for="mv-dst">Destination path</label>
+      <input type="text" id="mv-dst">
+      <div class="row"><button class="ctl primary" id="mv-go">Review and confirm…</button></div>
+    </div>
+    <div class="card">
+      <h2>Write archivist note</h2>
+      <p><span class="lamp dest">DESTRUCTIVE — GATED</span> <code>write_file</code></p>
+      <label for="wf-path">Full path of the note</label>
+      <input type="text" id="wf-path">
+      <label for="wf-content">Note content</label>
+      <textarea id="wf-content"></textarea>
+      <div class="row"><button class="ctl primary" id="wf-go">Review and confirm…</button></div>
+    </div>
+    <div class="card">
+      <h2>Amend a document</h2>
+      <p><span class="lamp dest">DESTRUCTIVE — GATED</span> <code>edit_file</code></p>
+      <label for="ef-path">Document</label>
+      <select id="ef-path"></select>
+      <label for="ef-old">Exact lines to replace (oldText)</label>
+      <textarea id="ef-old"></textarea>
+      <label for="ef-new">Replacement lines (newText)</label>
+      <textarea id="ef-new"></textarea>
+      <div class="row"><button class="ctl primary" id="ef-go">Review and confirm…</button></div>
+    </div>
+    <div class="card">
+      <h2>Call log</h2>
+      <p style="color:var(--ink-soft);font-size:.85rem">Every confirmed filing action is recorded here. In fixture mode nothing is ever sent.</p>
+      <ul class="callog" id="call-log" aria-live="polite"><li id="call-log-empty" style="color:var(--ink-soft)">No calls composed yet.</li></ul>
+    </div>
+  </section>
+
+  <section class="view" id="view-surface">
+    <div class="card">
+      <h2>Surface table — the server's full catalogue</h2>
+      <p style="color:var(--ink-soft);font-size:.85rem">All 14 tools from <code>tools/list</code><span class="chip">fixture: tools-list.json</span>. Annotations shown verbatim. Excluded tools are listed with their reason — nothing is silently omitted.</p>
+      <div style="overflow-x:auto"><table id="surface-table">
+        <thead><tr><th>Tool</th><th>Gate</th><th>Annotations (verbatim)</th><th>In this twin</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+</main>
+<footer class="pagefoot">
+  <p>Mental twin (fixture mode). One control per catalogued tool; one fixture per rendered state; the server's words are never edited. Canonical fixture copies live in <span style="font-family:var(--font-mono)">fixtures/</span> beside this file.</p>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="confirm" id="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h3 id="confirm-title"></h3>
+    <p id="confirm-consequence" style="font-size:.9rem"></p>
+    <p style="font-size:.85rem;color:var(--ink-soft);margin-bottom:2px">Exact call to be composed:</p>
+    <pre class="verbatim" id="confirm-params"></pre>
+    <div id="confirm-typegate" style="display:none">
+      <label for="confirm-typed">This tool is marked destructive. Type its name to enable confirm:</label>
+      <input type="text" id="confirm-typed" autocomplete="off">
+    </div>
+    <div class="row">
+      <button class="ctl" id="confirm-cancel">Cancel — do nothing</button>
+      <button class="ctl primary" id="confirm-go" disabled>Confirm — attempt this call</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="fixtures">{"fixtures":{"allowed-dirs.json":{"request":{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_allowed_directories","arguments":{}}},"response":{"result":{"content":[{"type":"text","text":"Allowed directories:\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}],"structuredContent":{"content":"Allowed directories:\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}},"jsonrpc":"2.0","id":2}},"error-read-missing.json":{"request":{"jsonrpc":"2.0","id":37,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2027-cases/missing.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Parent directory does not exist: /private/tmp/loomground-builder-example/scratchpad/case-sandbox/2027-cases"}],"isError":true},"jsonrpc":"2.0","id":37}},"error-read-outside.json":{"request":{"jsonrpc":"2.0","id":38,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/etc/hosts"}}},"response":{"result":{"content":[{"type":"text","text":"Access denied - path outside allowed directories: /etc/hosts not in /private/tmp/loomground-builder-example/scratchpad/case-sandbox"}],"isError":true},"jsonrpc":"2.0","id":38}},"info-hb-2025-014-exhibit-index.json":{"request":{"jsonrpc":"2.0","id":27,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 168\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 168\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":27}},"info-hb-2025-014-summary.json":{"request":{"jsonrpc":"2.0","id":26,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 244\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 244\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":26}},"info-hb-2025-021-summary.json":{"request":{"jsonrpc":"2.0","id":28,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 136\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 136\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":28}},"info-hb-2026-003-deadlines.json":{"request":{"jsonrpc":"2.0","id":30,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 113\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 113\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":30}},"info-hb-2026-003-summary.json":{"request":{"jsonrpc":"2.0","id":29,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 210\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 210\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":29}},"info-intake-note.json":{"request":{"jsonrpc":"2.0","id":31,"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}}},"response":{"result":{"content":[{"type":"text","text":"size: 135\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}],"structuredContent":{"content":"size: 135\ncreated: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\nmodified: Thu Jul 23 2026 13:53:18 GMT+0200 (Central European Summer Time)\naccessed: Thu Jul 23 2026 18:26:42 GMT+0200 (Central European Summer Time)\nisDirectory: false\nisFile: true\npermissions: 644"}},"jsonrpc":"2.0","id":31}},"initialize.json":{"request":{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"mental-twin","version":"0.2"}}},"response":{"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":true}},"serverInfo":{"name":"secure-filesystem-server","version":"0.2.0"}},"jsonrpc":"2.0","id":1}},"ls-2025-cases.json":{"request":{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] HB-2025-014\n[DIR] HB-2025-021"}],"structuredContent":{"content":"[DIR] HB-2025-014\n[DIR] HB-2025-021"}},"jsonrpc":"2.0","id":5}},"ls-2026-cases.json":{"request":{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] HB-2026-003"}],"structuredContent":{"content":"[DIR] HB-2026-003"}},"jsonrpc":"2.0","id":6}},"ls-hb-2025-014.json":{"request":{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] exhibit-index.txt\n[FILE] summary.txt"}],"structuredContent":{"content":"[FILE] exhibit-index.txt\n[FILE] summary.txt"}},"jsonrpc":"2.0","id":8}},"ls-hb-2025-021.json":{"request":{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] summary.txt"}],"structuredContent":{"content":"[FILE] summary.txt"}},"jsonrpc":"2.0","id":9}},"ls-hb-2026-003.json":{"request":{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] deadlines.txt\n[FILE] summary.txt"}],"structuredContent":{"content":"[FILE] deadlines.txt\n[FILE] summary.txt"}},"jsonrpc":"2.0","id":10}},"ls-intake.json":{"request":{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] unsorted-note-0712.txt"}],"structuredContent":{"content":"[FILE] unsorted-note-0712.txt"}},"jsonrpc":"2.0","id":7}},"ls-root.json":{"request":{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] 2025-cases\n[DIR] 2026-cases\n[DIR] intake"}],"structuredContent":{"content":"[DIR] 2025-cases\n[DIR] 2026-cases\n[DIR] intake"}},"jsonrpc":"2.0","id":4}},"lss-2025-cases.json":{"request":{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] HB-2025-014                    \n[DIR] HB-2025-021                    \n\nTotal: 0 files, 2 directories\nCombined size: 0 B"}],"structuredContent":{"content":"[DIR] HB-2025-014                    \n[DIR] HB-2025-021                    \n\nTotal: 0 files, 2 directories\nCombined size: 0 B"}},"jsonrpc":"2.0","id":12}},"lss-2026-cases.json":{"request":{"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] HB-2026-003                    \n\nTotal: 0 files, 1 directories\nCombined size: 0 B"}],"structuredContent":{"content":"[DIR] HB-2026-003                    \n\nTotal: 0 files, 1 directories\nCombined size: 0 B"}},"jsonrpc":"2.0","id":13}},"lss-hb-2025-014.json":{"request":{"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] exhibit-index.txt                   168 B\n[FILE] summary.txt                         244 B\n\nTotal: 2 files, 0 directories\nCombined size: 412 B"}],"structuredContent":{"content":"[FILE] exhibit-index.txt                   168 B\n[FILE] summary.txt                         244 B\n\nTotal: 2 files, 0 directories\nCombined size: 412 B"}},"jsonrpc":"2.0","id":15}},"lss-hb-2025-021.json":{"request":{"jsonrpc":"2.0","id":16,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] summary.txt                         136 B\n\nTotal: 1 files, 0 directories\nCombined size: 136 B"}],"structuredContent":{"content":"[FILE] summary.txt                         136 B\n\nTotal: 1 files, 0 directories\nCombined size: 136 B"}},"jsonrpc":"2.0","id":16}},"lss-hb-2026-003.json":{"request":{"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] deadlines.txt                       113 B\n[FILE] summary.txt                         210 B\n\nTotal: 2 files, 0 directories\nCombined size: 323 B"}],"structuredContent":{"content":"[FILE] deadlines.txt                       113 B\n[FILE] summary.txt                         210 B\n\nTotal: 2 files, 0 directories\nCombined size: 323 B"}},"jsonrpc":"2.0","id":17}},"lss-intake.json":{"request":{"jsonrpc":"2.0","id":14,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake"}}},"response":{"result":{"content":[{"type":"text","text":"[FILE] unsorted-note-0712.txt              135 B\n\nTotal: 1 files, 0 directories\nCombined size: 135 B"}],"structuredContent":{"content":"[FILE] unsorted-note-0712.txt              135 B\n\nTotal: 1 files, 0 directories\nCombined size: 135 B"}},"jsonrpc":"2.0","id":14}},"lss-root.json":{"request":{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}}},"response":{"result":{"content":[{"type":"text","text":"[DIR] 2025-cases                     \n[DIR] 2026-cases                     \n[DIR] intake                         \n\nTotal: 0 files, 3 directories\nCombined size: 0 B"}],"structuredContent":{"content":"[DIR] 2025-cases                     \n[DIR] 2026-cases                     \n[DIR] intake                         \n\nTotal: 0 files, 3 directories\nCombined size: 0 B"}},"jsonrpc":"2.0","id":11}},"read-hb-2025-014-exhibit-index.json":{"request":{"jsonrpc":"2.0","id":19,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Exhibit index, HB-2025-014\nA  Bill of lading, 2025-01-17\nB  Damage survey report, 2025-01-29\nC  Correspondence bundle, Jan-Feb 2025\nD  Settlement agreement, 2025-08-22\n"}],"structuredContent":{"content":"Exhibit index, HB-2025-014\nA  Bill of lading, 2025-01-17\nB  Damage survey report, 2025-01-29\nC  Correspondence bundle, Jan-Feb 2025\nD  Settlement agreement, 2025-08-22\n"}},"jsonrpc":"2.0","id":19}},"read-hb-2025-014-summary.json":{"request":{"jsonrpc":"2.0","id":18,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Case HB-2025-014 — Brandt v. Nordwind Logistik GmbH\nFiled: 2025-03-11. Status: closed (settled).\nSubject: disputed carriage damage claim, Hamburg regional court.\nArchivist note: exhibits A-D scanned; originals returned to counsel 2025-09-02.\n"}],"structuredContent":{"content":"Case HB-2025-014 — Brandt v. Nordwind Logistik GmbH\nFiled: 2025-03-11. Status: closed (settled).\nSubject: disputed carriage damage claim, Hamburg regional court.\nArchivist note: exhibits A-D scanned; originals returned to counsel 2025-09-02.\n"}},"jsonrpc":"2.0","id":18}},"read-hb-2025-021-summary.json":{"request":{"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Case HB-2025-021 — In re Estate of M. Petersen\nFiled: 2025-06-30. Status: closed.\nSubject: probate archive transfer from Kiel office.\n"}],"structuredContent":{"content":"Case HB-2025-021 — In re Estate of M. Petersen\nFiled: 2025-06-30. Status: closed.\nSubject: probate archive transfer from Kiel office.\n"}},"jsonrpc":"2.0","id":20}},"read-hb-2026-003-deadlines.json":{"request":{"jsonrpc":"2.0","id":22,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Deadlines, HB-2026-003\n2026-08-01  Exhibit exchange cutoff\n2026-09-14  Hearing, Arbeitsgericht Hamburg, room 214\n"}],"structuredContent":{"content":"Deadlines, HB-2026-003\n2026-08-01  Exhibit exchange cutoff\n2026-09-14  Hearing, Arbeitsgericht Hamburg, room 214\n"}},"jsonrpc":"2.0","id":22}},"read-hb-2026-003-summary.json":{"request":{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Case HB-2026-003 — Feldmann AG employment matter\nFiled: 2026-01-19. Status: open.\nSubject: unfair dismissal claim; hearing scheduled 2026-09-14.\nArchivist note: awaiting exhibit bundle from opposing counsel.\n"}],"structuredContent":{"content":"Case HB-2026-003 — Feldmann AG employment matter\nFiled: 2026-01-19. Status: open.\nSubject: unfair dismissal claim; hearing scheduled 2026-09-14.\nArchivist note: awaiting exhibit bundle from opposing counsel.\n"}},"jsonrpc":"2.0","id":21}},"read-intake-note.json":{"request":{"jsonrpc":"2.0","id":23,"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}}},"response":{"result":{"content":[{"type":"text","text":"Intake note, received 2026-07-12\nLoose correspondence from Feldmann matter, likely belongs in HB-2026-003.\nNeeds review before filing.\n"}],"structuredContent":{"content":"Intake note, received 2026-07-12\nLoose correspondence from Feldmann matter, likely belongs in HB-2026-003.\nNeeds review before filing.\n"}},"jsonrpc":"2.0","id":23}},"readmulti-hb-2025-014.json":{"request":{"jsonrpc":"2.0","id":25,"method":"tools/call","params":{"name":"read_multiple_files","arguments":{"paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"]}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt:\nCase HB-2025-014 — Brandt v. Nordwind Logistik GmbH\nFiled: 2025-03-11. Status: closed (settled).\nSubject: disputed carriage damage claim, Hamburg regional court.\nArchivist note: exhibits A-D scanned; originals returned to counsel 2025-09-02.\n\n\n---\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt:\nExhibit index, HB-2025-014\nA  Bill of lading, 2025-01-17\nB  Damage survey report, 2025-01-29\nC  Correspondence bundle, Jan-Feb 2025\nD  Settlement agreement, 2025-08-22\n\n"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt:\nCase HB-2025-014 — Brandt v. Nordwind Logistik GmbH\nFiled: 2025-03-11. Status: closed (settled).\nSubject: disputed carriage damage claim, Hamburg regional court.\nArchivist note: exhibits A-D scanned; originals returned to counsel 2025-09-02.\n\n\n---\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt:\nExhibit index, HB-2025-014\nA  Bill of lading, 2025-01-17\nB  Damage survey report, 2025-01-29\nC  Correspondence bundle, Jan-Feb 2025\nD  Settlement agreement, 2025-08-22\n\n"}},"jsonrpc":"2.0","id":25}},"readmulti-hb-2026-003.json":{"request":{"jsonrpc":"2.0","id":24,"method":"tools/call","params":{"name":"read_multiple_files","arguments":{"paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"]}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt:\nCase HB-2026-003 — Feldmann AG employment matter\nFiled: 2026-01-19. Status: open.\nSubject: unfair dismissal claim; hearing scheduled 2026-09-14.\nArchivist note: awaiting exhibit bundle from opposing counsel.\n\n\n---\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt:\nDeadlines, HB-2026-003\n2026-08-01  Exhibit exchange cutoff\n2026-09-14  Hearing, Arbeitsgericht Hamburg, room 214\n\n"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt:\nCase HB-2026-003 — Feldmann AG employment matter\nFiled: 2026-01-19. Status: open.\nSubject: unfair dismissal claim; hearing scheduled 2026-09-14.\nArchivist note: awaiting exhibit bundle from opposing counsel.\n\n\n---\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt:\nDeadlines, HB-2026-003\n2026-08-01  Exhibit exchange cutoff\n2026-09-14  Hearing, Arbeitsgericht Hamburg, room 214\n\n"}},"jsonrpc":"2.0","id":24}},"search-deadlines.json":{"request":{"jsonrpc":"2.0","id":34,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"deadlines"}}},"response":{"result":{"content":[{"type":"text","text":"No matches found"}],"structuredContent":{"content":"No matches found"}},"jsonrpc":"2.0","id":34}},"search-exhibit.json":{"request":{"jsonrpc":"2.0","id":33,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"exhibit"}}},"response":{"result":{"content":[{"type":"text","text":"No matches found"}],"structuredContent":{"content":"No matches found"}},"jsonrpc":"2.0","id":33}},"search-feldmann.json":{"request":{"jsonrpc":"2.0","id":36,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"feldmann"}}},"response":{"result":{"content":[{"type":"text","text":"No matches found"}],"structuredContent":{"content":"No matches found"}},"jsonrpc":"2.0","id":36}},"search-glob-all-txt.json":{"request":{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/*.txt"}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}},"jsonrpc":"2.0","id":2}},"search-glob-exhibit.json":{"request":{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/exhibit*"}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}},"jsonrpc":"2.0","id":4}},"search-glob-hb2026.json":{"request":{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/HB-2026*"}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}},"jsonrpc":"2.0","id":5}},"search-glob-summary.json":{"request":{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/summary*"}}},"response":{"result":{"content":[{"type":"text","text":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}],"structuredContent":{"content":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt\n/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}},"jsonrpc":"2.0","id":3}},"search-summary.json":{"request":{"jsonrpc":"2.0","id":32,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"summary"}}},"response":{"result":{"content":[{"type":"text","text":"No matches found"}],"structuredContent":{"content":"No matches found"}},"jsonrpc":"2.0","id":32}},"search-txt-glob.json":{"request":{"jsonrpc":"2.0","id":35,"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"*.txt"}}},"response":{"result":{"content":[{"type":"text","text":"No matches found"}],"structuredContent":{"content":"No matches found"}},"jsonrpc":"2.0","id":35}},"tools-list.json":{"request":{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}},"response":{"result":{"tools":[{"name":"read_file","title":"Read File (Deprecated)","description":"Read the complete contents of a file as text. DEPRECATED: Use read_text_file instead.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"tail":{"description":"If provided, returns only the last N lines of the file","type":"number"},"head":{"description":"If provided, returns only the first N lines of the file","type":"number"}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"read_text_file","title":"Read Text File","description":"Read the complete contents of a file from the file system as text. Handles various text encodings and provides detailed error messages if the file cannot be read. Use this tool when you need to examine the contents of a single file. Use the 'head' parameter to read only the first N lines of a file, or the 'tail' parameter to read only the last N lines of a file. Operates on the file as text regardless of extension. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"tail":{"description":"If provided, returns only the last N lines of the file","type":"number"},"head":{"description":"If provided, returns only the first N lines of the file","type":"number"}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"read_media_file","title":"Read Media File","description":"Read a file and return it as a base64-encoded content block with its MIME type. Image and audio files are returned as image/audio content; any other file type is returned as an embedded resource. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["image","audio"]},"data":{"type":"string"},"mimeType":{"type":"string"}},"required":["type","data","mimeType"],"additionalProperties":false},{"type":"object","properties":{"type":{"type":"string","const":"resource"},"resource":{"type":"object","properties":{"uri":{"type":"string"},"mimeType":{"type":"string"},"blob":{"type":"string"}},"required":["uri","blob"],"additionalProperties":false}},"required":["type","resource"],"additionalProperties":false}]}}},"required":["content"],"additionalProperties":false}},{"name":"read_multiple_files","title":"Read Multiple Files","description":"Read the contents of multiple files simultaneously. This is more efficient than reading files one by one when you need to analyze or compare multiple files. Each file's content is returned with its path as a reference. Failed reads for individual files won't stop the entire operation. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"paths":{"minItems":1,"type":"array","items":{"type":"string"},"description":"Array of file paths to read. Each path must be a string pointing to a valid file within allowed directories."}},"required":["paths"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"write_file","title":"Write File","description":"Create a new file or completely overwrite an existing file with new content. Use with caution as it will overwrite existing files without warning. Handles text content with proper encoding. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"}},"required":["path","content"]},"annotations":{"readOnlyHint":false,"idempotentHint":true,"destructiveHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"edit_file","title":"Edit File","description":"Make line-based edits to a text file. Each edit replaces exact line sequences with new content. Returns a git-style diff showing the changes made. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"edits":{"type":"array","items":{"type":"object","properties":{"oldText":{"type":"string","description":"Text to search for - must match exactly"},"newText":{"type":"string","description":"Text to replace with"}},"required":["oldText","newText"]}},"dryRun":{"default":false,"description":"Preview changes using git-style diff format","type":"boolean"}},"required":["path","edits"]},"annotations":{"readOnlyHint":false,"idempotentHint":false,"destructiveHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"create_directory","title":"Create Directory","description":"Create a new directory or ensure a directory exists. Can create multiple nested directories in one operation. If the directory already exists, this operation will succeed silently. Perfect for setting up directory structures for projects or ensuring required paths exist. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"}},"required":["path"]},"annotations":{"readOnlyHint":false,"idempotentHint":true,"destructiveHint":false,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"list_directory","title":"List Directory","description":"Get a detailed listing of all files and directories in a specified path. Results clearly distinguish between files and directories with [FILE] and [DIR] prefixes. This tool is essential for understanding directory structure and finding specific files within a directory. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"list_directory_with_sizes","title":"List Directory with Sizes","description":"Get a detailed listing of all files and directories in a specified path, including sizes. Results clearly distinguish between files and directories with [FILE] and [DIR] prefixes. This tool is useful for understanding directory structure and finding specific files within a directory. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"sortBy":{"default":"name","description":"Sort entries by name or size","type":"string","enum":["name","size"]}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"directory_tree","title":"Directory Tree","description":"Get a recursive tree view of files and directories as a JSON structure. Each entry includes 'name', 'type' (file/directory), and 'children' for directories. Files have no children array, while directories always have a children array (which may be empty). The output is formatted with 2-space indentation for readability. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"excludePatterns":{"default":[],"type":"array","items":{"type":"string"}}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"move_file","title":"Move File","description":"Move or rename files and directories. Can move files between directories and rename them in a single operation. If the destination exists, the operation will fail. Works across different directories and can be used for simple renaming within the same directory. Both source and destination must be within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"source":{"type":"string"},"destination":{"type":"string"}},"required":["source","destination"]},"annotations":{"readOnlyHint":false,"idempotentHint":false,"destructiveHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"search_files","title":"Search Files","description":"Recursively search for files and directories matching a pattern. The patterns should be glob-style patterns that match paths relative to the working directory. Use pattern like '*.ext' to match files in current directory, and '**/*.ext' to match files in all subdirectories. Returns full paths to all matching items. Great for finding files when you don't know their exact location. Only searches within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"},"pattern":{"type":"string"},"excludePatterns":{"default":[],"type":"array","items":{"type":"string"}}},"required":["path","pattern"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"get_file_info","title":"Get File Info","description":"Retrieve detailed metadata about a file or directory. Returns comprehensive information including size, creation time, last modified time, permissions, and type. This tool is perfect for understanding file characteristics without reading the actual content. Only works within allowed directories.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"path":{"type":"string"}},"required":["path"]},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}},{"name":"list_allowed_directories","title":"List Allowed Directories","description":"Returns the list of directories that this server is allowed to access. Subdirectories within these allowed directories are also accessible. Use this to understand which directories and their nested paths are available before trying to access files.","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{}},"annotations":{"readOnlyHint":true,"openWorldHint":false},"execution":{"taskSupport":"forbidden"},"outputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}}]},"jsonrpc":"2.0","id":2}},"tree-root.json":{"request":{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"directory_tree","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}}},"response":{"result":{"content":[{"type":"text","text":"[\n  {\n    \"name\": \"2025-cases\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"HB-2025-014\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"exhibit-index.txt\",\n            \"type\": \"file\"\n          },\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      },\n      {\n        \"name\": \"HB-2025-021\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"name\": \"2026-cases\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"HB-2026-003\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"deadlines.txt\",\n            \"type\": \"file\"\n          },\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"name\": \"intake\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"unsorted-note-0712.txt\",\n        \"type\": \"file\"\n      }\n    ]\n  }\n]"}],"structuredContent":{"content":"[\n  {\n    \"name\": \"2025-cases\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"HB-2025-014\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"exhibit-index.txt\",\n            \"type\": \"file\"\n          },\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      },\n      {\n        \"name\": \"HB-2025-021\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"name\": \"2026-cases\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"HB-2026-003\",\n        \"type\": \"directory\",\n        \"children\": [\n          {\n            \"name\": \"deadlines.txt\",\n            \"type\": \"file\"\n          },\n          {\n            \"name\": \"summary.txt\",\n            \"type\": \"file\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"name\": \"intake\",\n    \"type\": \"directory\",\n    \"children\": [\n      {\n        \"name\": \"unsorted-note-0712.txt\",\n        \"type\": \"file\"\n      }\n    ]\n  }\n]"}},"jsonrpc":"2.0","id":3}}},"manifest":{"target":"@modelcontextprotocol/server-filesystem (secure-filesystem-server 0.2.0)","transport":"stdio, JSON-RPC 2.0, newline-delimited; protocolVersion 2025-06-18","capturedBy":"mental-twin capture driver (scratchpad/driver.mjs, test tooling)","capturedOn":"2026-07-23","allowedDirectory":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","seedRecords":"none — the sandbox tree was created as environment setup before the server was started, not through server write tools; no seed calls were made","notes":"Every permitted state read used only readOnlyHint:true tools. The two error-*.json captures were provoked deliberately per the error-capture rule.","fixtures":{"initialize.json":{"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"mental-twin","version":"0.2"}},"channelRendered":"jsonrpc result","role":"pin (server identity/version)"},"tools-list.json":{"method":"tools/list","params":{},"channelRendered":"jsonrpc result","role":"catalogue"},"allowed-dirs.json":{"method":"tools/call","params":{"name":"list_allowed_directories","arguments":{}},"channelRendered":"structuredContent.content","role":"state read"},"tree-root.json":{"method":"tools/call","params":{"name":"directory_tree","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-root.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-2025-cases.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-2026-cases.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-intake.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-hb-2025-014.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-hb-2025-021.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021"}},"channelRendered":"structuredContent.content","role":"state read"},"ls-hb-2026-003.json":{"method":"tools/call","params":{"name":"list_directory","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-root.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-2025-cases.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-2026-cases.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-intake.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-hb-2025-014.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-hb-2025-021.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021"}},"channelRendered":"structuredContent.content","role":"state read"},"lss-hb-2026-003.json":{"method":"tools/call","params":{"name":"list_directory_with_sizes","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003"}},"channelRendered":"structuredContent.content","role":"state read"},"read-hb-2025-014-summary.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"read-hb-2025-014-exhibit-index.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"read-hb-2025-021-summary.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"read-hb-2026-003-summary.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"read-hb-2026-003-deadlines.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"read-intake-note.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"readmulti-hb-2026-003.json":{"method":"tools/call","params":{"name":"read_multiple_files","arguments":{"paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"]}},"channelRendered":"structuredContent.content","role":"state read"},"readmulti-hb-2025-014.json":{"method":"tools/call","params":{"name":"read_multiple_files","arguments":{"paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"]}},"channelRendered":"structuredContent.content","role":"state read"},"info-hb-2025-014-summary.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"info-hb-2025-014-exhibit-index.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"info-hb-2025-021-summary.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"info-hb-2026-003-summary.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"info-hb-2026-003-deadlines.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"info-intake-note.json":{"method":"tools/call","params":{"name":"get_file_info","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt"}},"channelRendered":"structuredContent.content","role":"state read"},"search-summary.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"summary"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-exhibit.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"exhibit"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-deadlines.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"deadlines"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-txt-glob.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"*.txt"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-feldmann.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"feldmann"}},"channelRendered":"structuredContent.content","role":"search replay set"},"error-read-missing.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2027-cases/missing.txt"}},"channelRendered":"content[0].text (isError result)","role":"provoked error capture (read-marked tool, invalid arguments — sanctioned)"},"error-read-outside.json":{"method":"tools/call","params":{"name":"read_text_file","arguments":{"path":"/etc/hosts"}},"channelRendered":"content[0].text (isError result)","role":"provoked error capture (read-marked tool, invalid arguments — sanctioned)"},"search-glob-all-txt.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/*.txt"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-glob-summary.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/summary*"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-glob-exhibit.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/exhibit*"}},"channelRendered":"structuredContent.content","role":"search replay set"},"search-glob-hb2026.json":{"method":"tools/call","params":{"name":"search_files","arguments":{"path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","pattern":"**/HB-2026*"}},"channelRendered":"structuredContent.content","role":"search replay set"}}}}</script>
+<script type="application/json" id="wiring">{"ROOT":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","browseDirs":[{"label":"(archive root)","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","plainFx":"ls-root.json","sizesFx":"lss-root.json"},{"label":"2025-cases","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases","plainFx":"ls-2025-cases.json","sizesFx":"lss-2025-cases.json"},{"label":"2025-cases/HB-2025-014","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014","plainFx":"ls-hb-2025-014.json","sizesFx":"lss-hb-2025-014.json"},{"label":"2025-cases/HB-2025-021","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021","plainFx":"ls-hb-2025-021.json","sizesFx":"lss-hb-2025-021.json"},{"label":"2026-cases","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases","plainFx":"ls-2026-cases.json","sizesFx":"lss-2026-cases.json"},{"label":"2026-cases/HB-2026-003","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003","plainFx":"ls-hb-2026-003.json","sizesFx":"lss-hb-2026-003.json"},{"label":"intake","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake","plainFx":"ls-intake.json","sizesFx":"lss-intake.json"}],"docs":[{"label":"2025-cases/HB-2025-014/exhibit-index.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt","readFx":"read-hb-2025-014-exhibit-index.json","infoFx":"info-hb-2025-014-exhibit-index.json"},{"label":"2025-cases/HB-2025-014/summary.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt","readFx":"read-hb-2025-014-summary.json","infoFx":"info-hb-2025-014-summary.json"},{"label":"2025-cases/HB-2025-021/summary.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt","readFx":"read-hb-2025-021-summary.json","infoFx":"info-hb-2025-021-summary.json"},{"label":"2026-cases/HB-2026-003/deadlines.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt","readFx":"read-hb-2026-003-deadlines.json","infoFx":"info-hb-2026-003-deadlines.json"},{"label":"2026-cases/HB-2026-003/summary.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt","readFx":"read-hb-2026-003-summary.json","infoFx":"info-hb-2026-003-summary.json"},{"label":"intake/unsorted-note-0712.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt","readFx":"read-intake-note.json","infoFx":"info-intake-note.json"}],"bundles":[{"label":"2025-cases/HB-2025-014/summary.txt + 2025-cases/HB-2025-014/exhibit-index.txt","paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt"],"fx":"readmulti-hb-2025-014.json"},{"label":"2026-cases/HB-2026-003/summary.txt + 2026-cases/HB-2026-003/deadlines.txt","paths":["/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt"],"fx":"readmulti-hb-2026-003.json"}],"searches":[{"pattern":"*.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-txt-glob.json"},{"pattern":"**/*.txt","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-glob-all-txt.json"},{"pattern":"**/exhibit*","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-glob-exhibit.json"},{"pattern":"**/HB-2026*","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-glob-hb2026.json"},{"pattern":"**/summary*","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-glob-summary.json"},{"pattern":"deadlines","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-deadlines.json"},{"pattern":"exhibit","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-exhibit.json"},{"pattern":"feldmann","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-feldmann.json"},{"pattern":"summary","path":"/private/tmp/loomground-builder-example/scratchpad/case-sandbox","fx":"search-summary.json"}],"byPath":{"/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/summary.txt":"read-hb-2025-014-summary.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-014/exhibit-index.txt":"read-hb-2025-014-exhibit-index.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2025-cases/HB-2025-021/summary.txt":"read-hb-2025-021-summary.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/summary.txt":"read-hb-2026-003-summary.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2026-cases/HB-2026-003/deadlines.txt":"read-hb-2026-003-deadlines.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/intake/unsorted-note-0712.txt":"read-intake-note.json","/private/tmp/loomground-builder-example/scratchpad/case-sandbox/2027-cases/missing.txt":"error-read-missing.json","/etc/hosts":"error-read-outside.json"},"EXCLUDED":{"read_file":"Excluded: the server's own description marks it DEPRECATED in favour of read_text_file, which is in scope.","read_media_file":"Excluded: the archive sandbox contains no media files, so no fixture could be captured; a free-argument read with no captured argument sets could only ever refuse."},"CONTROL_MAP":{"read_text_file":"Reading room: document list, and the Open-by-path field","read_multiple_files":"Reading room: case-bundle buttons","list_directory":"Browse: plain listing mode","list_directory_with_sizes":"Browse: listing-with-sizes mode","directory_tree":"Overview: archive tree","search_files":"Search view","get_file_info":"Reading room: Details button per document","list_allowed_directories":"Overview: archive root panel","create_directory":"Filing: New case folder (gated)","move_file":"Filing: File document into case (gated, destructive)","write_file":"Filing: Write archivist note (gated, destructive)","edit_file":"Filing: Amend a document (gated, destructive)"}}</script>
+<script>
+"use strict";
+var BUNDLE = JSON.parse(document.getElementById("fixtures").textContent);
+var W = JSON.parse(document.getElementById("wiring").textContent);
+var FX = BUNDLE.fixtures;
+
+function payloadText(name) {
+  var r = FX[name].response.result;
+  if (r.structuredContent && typeof r.structuredContent.content === "string") return r.structuredContent.content;
+  return r.content[0].text;
+}
+function isErrorFx(name) { return !!FX[name].response.result.isError; }
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function chip(name) { return '<span class="chip">fixture: ' + esc(name) + "</span>"; }
+function verbatimBlock(name, heading) {
+  var err = isErrorFx(name);
+  var html = "";
+  if (heading) html += "<p style='margin:12px 0 0'><strong>" + esc(heading) + "</strong>" + chip(name) + "</p>";
+  else html += "<p style='margin:12px 0 0'>" + chip(name) + "</p>";
+  if (err) {
+    html += '<div class="failbox"><span class="lamp fail">SERVER ERROR (isError: true)</span><pre class="verbatim" style="margin-top:8px">' + esc(payloadText(name)) + "</pre></div>";
+  } else {
+    html += '<pre class="verbatim">' + esc(payloadText(name)) + "</pre>";
+  }
+  return html;
+}
+function refusalBlock(input) {
+  return '<div class="notice"><strong>No fixture captured for this input</strong> — live connection required. Input was: <code>' + esc(input) + "</code>. This twin replays captured responses only; it never computes an answer of its own.</div>";
+}
+
+/* ---- view switching ---- */
+var navBtns = document.querySelectorAll("nav.views button");
+navBtns.forEach(function (b) {
+  b.addEventListener("click", function () {
+    navBtns.forEach(function (x) { x.setAttribute("aria-current", "false"); });
+    b.setAttribute("aria-current", "true");
+    document.querySelectorAll("section.view").forEach(function (s) { s.classList.remove("active"); });
+    document.getElementById("view-" + b.dataset.view).classList.add("active");
+  });
+});
+
+/* ---- overview ---- */
+document.getElementById("out-allowed").textContent = payloadText("allowed-dirs.json");
+document.getElementById("out-tree").textContent = payloadText("tree-root.json");
+
+/* ---- browse ---- */
+var browseMode = "plain";
+var browseSel = null;
+function renderBrowse() {
+  var out = document.getElementById("browse-out");
+  if (!browseSel) { out.innerHTML = '<p style="color:var(--ink-soft)">Choose a folder above.</p>'; return; }
+  var fxName = browseMode === "plain" ? browseSel.plainFx : browseSel.sizesFx;
+  var toolName = browseMode === "plain" ? "list_directory" : "list_directory_with_sizes";
+  out.innerHTML = '<p style="margin:6px 0 0"><span class="lamp read">READ — ungated</span> <code>' + toolName + "</code> · " + esc(browseSel.label) + "</p>" + verbatimBlock(fxName);
+}
+var folderWrap = document.getElementById("browse-folders");
+W.browseDirs.forEach(function (d) {
+  var b = document.createElement("button");
+  b.className = "ctl"; b.textContent = d.label; b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", function () {
+    folderWrap.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+    b.setAttribute("aria-pressed", "true");
+    browseSel = d; renderBrowse();
+  });
+  folderWrap.appendChild(b);
+});
+document.getElementById("mode-plain").addEventListener("click", function () {
+  browseMode = "plain";
+  document.getElementById("mode-plain").setAttribute("aria-pressed", "true");
+  document.getElementById("mode-sizes").setAttribute("aria-pressed", "false");
+  renderBrowse();
+});
+document.getElementById("mode-sizes").addEventListener("click", function () {
+  browseMode = "sizes";
+  document.getElementById("mode-plain").setAttribute("aria-pressed", "false");
+  document.getElementById("mode-sizes").setAttribute("aria-pressed", "true");
+  renderBrowse();
+});
+renderBrowse();
+
+/* ---- reading room ---- */
+var docList = document.getElementById("doc-list");
+W.docs.forEach(function (d) {
+  var li = document.createElement("li");
+  var name = document.createElement("span"); name.className = "name"; name.textContent = d.label;
+  var open = document.createElement("button"); open.className = "ctl"; open.textContent = "Open";
+  open.addEventListener("click", function () {
+    document.getElementById("doc-out").innerHTML =
+      '<p style="margin:14px 0 0"><span class="lamp read">READ — ungated</span> <code>read_text_file</code> · ' + esc(d.label) + "</p>" + verbatimBlock(d.readFx);
+  });
+  var info = document.createElement("button"); info.className = "ctl"; info.textContent = "Details";
+  info.addEventListener("click", function () {
+    document.getElementById("doc-out").innerHTML =
+      '<p style="margin:14px 0 0"><span class="lamp read">READ — ungated</span> <code>get_file_info</code> · ' + esc(d.label) + "</p>" + verbatimBlock(d.infoFx);
+  });
+  li.appendChild(name); li.appendChild(open); li.appendChild(info);
+  docList.appendChild(li);
+});
+var bundleWrap = document.getElementById("bundle-btns");
+W.bundles.forEach(function (bd) {
+  var b = document.createElement("button"); b.className = "ctl"; b.textContent = bd.label;
+  b.addEventListener("click", function () {
+    document.getElementById("bundle-out").innerHTML =
+      '<p style="margin:6px 0 0"><span class="lamp read">READ — ungated</span> <code>read_multiple_files</code></p>' + verbatimBlock(bd.fx);
+  });
+  bundleWrap.appendChild(b);
+});
+document.getElementById("path-open").addEventListener("click", function () {
+  var p = document.getElementById("path-input").value.trim();
+  var out = document.getElementById("path-out");
+  if (W.byPath[p]) out.innerHTML = verbatimBlock(W.byPath[p]);
+  else out.innerHTML = refusalBlock(p);
+});
+
+/* ---- search ---- */
+var presetWrap = document.getElementById("search-presets");
+W.searches.forEach(function (s) {
+  var b = document.createElement("button"); b.className = "ctl"; b.textContent = s.pattern;
+  b.addEventListener("click", function () {
+    document.getElementById("search-input").value = s.pattern;
+    runSearch();
+  });
+  presetWrap.appendChild(b);
+});
+function runSearch() {
+  var pat = document.getElementById("search-input").value.trim();
+  var out = document.getElementById("search-out");
+  var hit = null;
+  W.searches.forEach(function (s) { if (s.pattern === pat) hit = s; });
+  if (hit) {
+    out.innerHTML = '<p style="margin:12px 0 0"><code>search_files</code> · pattern <code>' + esc(pat) + "</code> · path: archive root</p>" + verbatimBlock(hit.fx);
+  } else {
+    out.innerHTML = refusalBlock(pat);
+  }
+}
+document.getElementById("search-run").addEventListener("click", runSearch);
+document.getElementById("search-input").addEventListener("keydown", function (e) { if (e.key === "Enter") runSearch(); });
+
+/* ---- filing: gated writes ---- */
+var TOOLMETA = {};
+BUNDLE.fixtures["tools-list.json"].response.result.tools.forEach(function (t) { TOOLMETA[t.name] = t; });
+
+var mvSrc = document.getElementById("mv-src");
+var efPath = document.getElementById("ef-path");
+Object.keys(W.byPath).forEach(function (p) {
+  if (W.byPath[p].indexOf("error-") === 0) return;
+  var o1 = document.createElement("option"); o1.value = p; o1.textContent = p.slice(W.ROOT.length + 1);
+  var o2 = o1.cloneNode(true);
+  mvSrc.appendChild(o1); efPath.appendChild(o2);
+});
+document.getElementById("cd-path").value = W.ROOT + "/2026-cases/";
+document.getElementById("mv-dst").value = W.ROOT + "/";
+document.getElementById("wf-path").value = W.ROOT + "/";
+
+var overlay = document.getElementById("overlay");
+var pendingCall = null;
+function openConfirm(toolName, args) {
+  var meta = TOOLMETA[toolName];
+  var destructive = !!(meta.annotations && meta.annotations.destructiveHint);
+  pendingCall = { name: toolName, arguments: args };
+  document.getElementById("confirm-card").className = "confirm" + (destructive ? " dest" : "");
+  document.getElementById("confirm-title").textContent = "Confirm: " + toolName;
+  document.getElementById("confirm-consequence").innerHTML =
+    "On a live connection this call would do the following, in the server's own words: <em>" + esc(meta.description) + "</em>" +
+    (destructive ? " The server marks this tool <code>destructiveHint: true</code>." : "") +
+    " This page is fixture-backed: confirming will not send anything.";
+  document.getElementById("confirm-params").textContent =
+    JSON.stringify({ method: "tools/call", params: { name: toolName, arguments: args } }, null, 2);
+  var gate = document.getElementById("confirm-typegate");
+  var typed = document.getElementById("confirm-typed");
+  var go = document.getElementById("confirm-go");
+  typed.value = "";
+  if (destructive) { gate.style.display = "block"; go.disabled = true; }
+  else { gate.style.display = "none"; go.disabled = false; }
+  overlay.classList.add("open");
+  if (destructive) typed.focus(); else go.focus();
+}
+document.getElementById("confirm-typed").addEventListener("input", function () {
+  document.getElementById("confirm-go").disabled = (this.value.trim() !== pendingCall.name);
+});
+document.getElementById("confirm-cancel").addEventListener("click", function () {
+  pendingCall = null; overlay.classList.remove("open");
+});
+document.getElementById("confirm-go").addEventListener("click", function () {
+  if (!pendingCall) return;
+  var log = document.getElementById("call-log");
+  var empty = document.getElementById("call-log-empty");
+  if (empty) empty.remove();
+  var li = document.createElement("li");
+  li.innerHTML = '<span class="lamp fail">NOT SENT — no live connection</span> <code>' + esc(pendingCall.name) + "</code>" +
+    '<div class="failbox">This call was composed and explicitly not sent; no state changed anywhere.<pre class="verbatim" style="margin-top:8px">' +
+    esc(JSON.stringify({ method: "tools/call", params: pendingCall }, null, 2)) + "</pre></div>";
+  log.appendChild(li);
+  pendingCall = null; overlay.classList.remove("open");
+});
+document.getElementById("cd-go").addEventListener("click", function () {
+  openConfirm("create_directory", { path: document.getElementById("cd-path").value });
+});
+document.getElementById("mv-go").addEventListener("click", function () {
+  openConfirm("move_file", { source: mvSrc.value, destination: document.getElementById("mv-dst").value });
+});
+document.getElementById("wf-go").addEventListener("click", function () {
+  openConfirm("write_file", { path: document.getElementById("wf-path").value, content: document.getElementById("wf-content").value });
+});
+document.getElementById("ef-go").addEventListener("click", function () {
+  openConfirm("edit_file", { path: efPath.value, edits: [{ oldText: document.getElementById("ef-old").value, newText: document.getElementById("ef-new").value }] });
+});
+
+/* ---- surface table ---- */
+var tbody = document.querySelector("#surface-table tbody");
+BUNDLE.fixtures["tools-list.json"].response.result.tools.forEach(function (t) {
+  var tr = document.createElement("tr");
+  var ro = t.annotations && t.annotations.readOnlyHint === true;
+  var dest = t.annotations && t.annotations.destructiveHint === true;
+  var lamp = ro ? '<span class="lamp read">READ — ungated</span>'
+    : dest ? '<span class="lamp dest">DESTRUCTIVE — GATED</span>'
+    : '<span class="lamp gate">WRITE — GATED</span>';
+  var scope = W.EXCLUDED[t.name]
+    ? "<em>" + esc(W.EXCLUDED[t.name]) + "</em>"
+    : esc(W.CONTROL_MAP[t.name] || "");
+  tr.innerHTML = "<td><code>" + esc(t.name) + "</code></td><td>" + lamp + "</td><td><code style='font-size:.75rem'>" +
+    esc(JSON.stringify(t.annotations || null)) + "</code></td><td>" + scope + "</td>";
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

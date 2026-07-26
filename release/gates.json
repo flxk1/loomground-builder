@@ -1,0 +1,117 @@
+{
+  "format": "loomground-builder.release-gates/v1",
+  "checks": [
+    {
+      "id": "R1",
+      "claim": "M1-M3 valid, 5D-faithful, depth-faithful language emission",
+      "kind": "command",
+      "requires": ["meta/gate.py", "requirements-dev.txt"],
+      "command": ["python3", "-m", "meta.gate"]
+    },
+    {
+      "id": "R2",
+      "claim": "M4 Ingest-to-Versum round-trip",
+      "kind": "command",
+      "requires": ["meta/gate_m4.py", "requirements-dev.txt"],
+      "command": ["python3", "-m", "meta.gate_m4"]
+    },
+    {
+      "id": "R3",
+      "claim": "M5 neutral reasoning.edges/v1 Solver round-trip",
+      "kind": "command",
+      "requires": ["meta/gate_m5.py", "requirements-dev.txt"],
+      "command": ["python3", "-m", "meta.gate_m5"]
+    },
+    {
+      "id": "R4",
+      "claim": "M6 full object-to-live-twin chain",
+      "kind": "command",
+      "requires": ["meta/gate_m6.py", "requirements-dev.txt"],
+      "command": ["python3", "-m", "meta.gate_m6"]
+    },
+    {
+      "id": "R5",
+      "claim": "M7 fail-closed honesty across every seam",
+      "kind": "command",
+      "requires": ["meta/gate_m7.py", "requirements-dev.txt"],
+      "command": ["python3", "-m", "meta.gate_m7"]
+    },
+    {
+      "id": "R6-rack",
+      "claim": "Rack genre live causation and complete catalogue coverage",
+      "kind": "command",
+      "requires": ["testing/live/adapters/notes.mjs"],
+      "command": ["node", "testing/live/live-gate.mjs", "--all"],
+      "env": {"TWIN_ADAPTER": "./adapters/notes.mjs"},
+      "forbid_output": ["SKIP:"]
+    },
+    {
+      "id": "R6-synth",
+      "claim": "Synth genre live causation and complete catalogue coverage",
+      "kind": "command",
+      "requires": ["testing/live/adapters/patch.mjs"],
+      "command": ["node", "testing/live/live-gate.mjs", "--all"],
+      "env": {"TWIN_ADAPTER": "./adapters/patch.mjs"},
+      "forbid_output": ["SKIP:"]
+    },
+    {
+      "id": "R6-daw",
+      "claim": "DAW genre live causation and complete catalogue coverage",
+      "kind": "command",
+      "requires": ["testing/live/adapters/daw.mjs"],
+      "command": ["node", "testing/live/live-gate.mjs", "--all"],
+      "env": {"TWIN_ADAPTER": "./adapters/daw.mjs"},
+      "forbid_output": ["SKIP:"]
+    },
+    {
+      "id": "R6-spatial",
+      "claim": "Spatial genre live causation and complete catalogue coverage",
+      "kind": "command",
+      "requires": ["testing/live/adapters/room.mjs"],
+      "command": ["node", "testing/live/live-gate.mjs", "--all"],
+      "env": {"TWIN_ADAPTER": "./adapters/room.mjs"},
+      "forbid_output": ["SKIP:"]
+    },
+    {
+      "id": "R7",
+      "claim": "3D-to-2D-to-text control-set invariance",
+      "kind": "command",
+      "requires": ["testing/live/room-d6.mjs"],
+      "command": ["npm", "run", "test:d6:room"]
+    },
+    {
+      "id": "R8",
+      "claim": "All generated backend sources conform",
+      "kind": "command",
+      "requires": ["testing/backend/backend-gate.mjs"],
+      "command": ["npm", "run", "test:backend:all"]
+    },
+    {
+      "id": "R9",
+      "claim": "Every release authority rejects its deliberate mutation",
+      "kind": "command",
+      "requires": ["testing/release/teeth-gate.mjs"],
+      "command": ["node", "testing/release/teeth-gate.mjs"]
+    },
+    {
+      "id": "R10",
+      "claim": "Hashed visual renders carry a fail-closed RVND policy verdict",
+      "kind": "command",
+      "requires": ["release/evidence/visual-review.json"],
+      "command": [
+        "rvnd-visual-verdict",
+        "--verify",
+        "release/evidence/visual-review.json",
+        "--builder-root",
+        "."
+      ]
+    },
+    {
+      "id": "R11",
+      "claim": "Plugin package validates and installs in a clean room",
+      "kind": "command",
+      "requires": [".claude-plugin/plugin.json", "testing/release/package-gate.mjs"],
+      "command": ["node", "testing/release/package-gate.mjs"]
+    }
+  ]
+}

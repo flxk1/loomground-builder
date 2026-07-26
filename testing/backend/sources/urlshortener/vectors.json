@@ -1,0 +1,17 @@
+[
+  { "domain": "url-core", "name": "shorten then resolve returns the url",
+    "steps": [{ "op": "shorten", "args": { "url": "https://example.com/a" }, "bind": "s" }],
+    "when": { "op": "resolve", "args": { "code": "$s.code" } },
+    "then": [{ "path": "url", "equals": "https://example.com/a" }] },
+  { "domain": "url-core", "name": "shorten then list contains it",
+    "steps": [{ "op": "shorten", "args": { "url": "https://example.com/b" }, "bind": "s" }],
+    "when": { "op": "list" },
+    "then": [{ "path": "entries", "contains": { "code": "$s.code", "url": "https://example.com/b" } }] },
+  { "domain": "url-refusals", "name": "resolve on a never-shortened code is refused",
+    "when": { "op": "resolve", "args": { "code": "does-not-exist" } },
+    "then": [{ "path": "ok", "equals": false }] },
+  { "domain": "url-refusals", "name": "remove then resolve is refused",
+    "steps": [{ "op": "shorten", "args": { "url": "https://example.com/c" }, "bind": "s" }, { "op": "remove", "args": { "code": "$s.code" } }],
+    "when": { "op": "resolve", "args": { "code": "$s.code" } },
+    "then": [{ "path": "ok", "equals": false }] }
+]

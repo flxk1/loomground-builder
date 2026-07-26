@@ -1,0 +1,76 @@
+/* synth-kit/1 — the modular-synth genre substrate (skill/genres/synth/).
+   Its own small vocabulary — knob, cable/patchbay, module — NOT twin-sheet/1
+   (the governance/list rack kit: racks, op-surfaces, lamps). This file styles
+   ONLY that vocabulary; it references nothing but the neutral --twin-*
+   interface and the sheet's own type/spacing scale (--ts-*, --sp-*, --g-*,
+   --p-card), already defined once by the component sheet
+   (skill/sheet/twin-sheet.css) inside its .twin scope — no new scale, no
+   parallel size system, per skill/SKILL.md step 4's composition discipline.
+   twin-sheet/1's components (opRow/opSurface/confirmGate/shelf/lamp) are
+   still used verbatim wherever this genre needs them (the read rack, the
+   confirm dialogs) — this kit only adds the DIRECT-MANIPULATION controls
+   (knob, cable) the rack genre never needed. Every control this kit renders
+   carries the Control grammar's three hooks (data-op, data-param,
+   data-gesture — skill/SKILL.md's "Control grammar" section); that is the
+   ONLY thing that makes a knob or a cable drivable by the live gate. */
+
+.synth-rack { display: flex; flex-direction: column; gap: var(--g-sect); }
+.synth-modules, .synth-cables { display: grid; gap: var(--g-sect);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+/* -- module: a labelled group of one module's controls -- */
+.synth-module { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card);
+  display: flex; flex-direction: column; gap: var(--g-block); }
+.synth-module > h3 { display: flex; align-items: baseline; gap: var(--sp-2); }
+.synth-module .synth-kind { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  text-transform: uppercase; letter-spacing: .06em; font-weight: 400; }
+
+/* -- knob: a labelled dial + its value input, direct-manipulation, no modal
+   surface — the value input and the fixed identity (module) sit right beside
+   the control, matching a real knob's "the value is always visible" shape.
+   .knob-face is a purely decorative dial; the actual driveable control is
+   the "Turn" button carrying data-op + data-gesture="turn". -- */
+.synth-knob { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.knob-face { width: 56px; height: 56px; border-radius: 50%;
+  background: conic-gradient(var(--twin-accent) 0deg, var(--twin-line) 0deg);
+  border: 1px solid var(--twin-line); position: relative; }
+.knob-face::after { content: ""; position: absolute; top: 6px; left: 50%; width: 2px; height: 20px;
+  background: var(--twin-txt-bright); transform-origin: 50% 22px; transform: translateX(-50%) rotate(var(--knob-rot, 0deg)); }
+.knob-label { font-size: var(--ts-label); color: var(--twin-txt-dim); text-align: center; }
+.knob-value-row { display: flex; align-items: center; gap: var(--sp-2); }
+.knob-value { width: 6.5em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.knob-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.knob-unit { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.knob-commit { width: 100%; }
+.knob-slot { width: 100%; }
+
+/* -- cable / patchbay: an endpoint control (data-gesture="patch") — two
+   port fields (from/to) beside a single commit, or, for an existing
+   connection, the two endpoints rendered read-only with an "Unpatch"
+   commit. -- */
+.synth-patchbay { display: flex; flex-direction: column; gap: var(--g-block); }
+.synth-cable { display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.synth-cable.synth-cable-connect { border-style: dashed; }
+.cable-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.cable-ports { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.cable-port { flex: 1; min-width: 8em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); }
+.cable-port:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.cable-plug { color: var(--twin-accent); font-weight: 600; }
+.cable-route { font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  flex: 1; }
+.cable-slot { width: 100%; }
+.synth-cable-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* -- state / witness read view: current connections + param values, always
+   rendered from the last real patch.list response, never computed locally -- */
+.synth-state-table { width: 100%; }
+.synth-rev { font-size: var(--ts-label); color: var(--twin-txt-dim); }

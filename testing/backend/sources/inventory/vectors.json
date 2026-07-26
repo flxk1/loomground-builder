@@ -1,0 +1,19 @@
+[
+  { "domain": "inventory-basics", "name": "stock sets the level",
+    "steps": [{ "op": "stock", "args": { "item": "apples", "qty": 10 } }],
+    "when": { "op": "level", "args": { "item": "apples" } },
+    "then": [{ "path": "level", "equals": 10 }] },
+  { "domain": "inventory-basics", "name": "take reduces the level",
+    "steps": [{ "op": "stock", "args": { "item": "pears", "qty": 10 } }, { "op": "take", "args": { "item": "pears", "qty": 3 } }],
+    "when": { "op": "level", "args": { "item": "pears" } },
+    "then": [{ "path": "level", "equals": 7 }] },
+  { "domain": "inventory-limits", "name": "take beyond level is refused and leaves it unchanged",
+    "steps": [{ "op": "stock", "args": { "item": "figs", "qty": 2 } }],
+    "when": { "op": "take", "args": { "item": "figs", "qty": 5 } },
+    "then": [{ "path": "ok", "equals": false }],
+    "check": [{ "op": "level", "args": { "item": "figs" }, "then": [{ "path": "level", "equals": 2 }] }] },
+  { "domain": "inventory-lifecycle", "name": "discard makes the item unknown",
+    "steps": [{ "op": "stock", "args": { "item": "plums", "qty": 1 } }, { "op": "discard", "args": { "item": "plums" } }],
+    "when": { "op": "level", "args": { "item": "plums" } },
+    "then": [{ "path": "ok", "equals": false }] }
+]

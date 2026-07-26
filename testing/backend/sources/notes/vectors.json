@@ -1,0 +1,14 @@
+[
+  { "domain": "notes-core", "name": "add then list contains it",
+    "steps": [{ "op": "add", "args": { "text": "buy milk" }, "bind": "a" }],
+    "when": { "op": "list" },
+    "then": [{ "path": "notes", "contains": { "id": "$a.id", "text": "buy milk" } }] },
+  { "domain": "notes-core", "name": "add then done reports done",
+    "steps": [{ "op": "add", "args": { "text": "x" }, "bind": "a" }, { "op": "done", "args": { "id": "$a.id" } }],
+    "when": { "op": "get", "args": { "id": "$a.id" } },
+    "then": [{ "path": "note.done", "equals": true }] },
+  { "domain": "notes-lifecycle", "name": "remove then get reports absent",
+    "steps": [{ "op": "add", "args": { "text": "y" }, "bind": "a" }, { "op": "remove", "args": { "id": "$a.id" } }],
+    "when": { "op": "get", "args": { "id": "$a.id" } },
+    "then": [{ "path": "ok", "equals": false }] }
+]

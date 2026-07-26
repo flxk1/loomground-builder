@@ -1,0 +1,157 @@
+/* twin-sheet/1 — component sheet for generated mental twins.
+   Components reference ONLY the neutral --twin-* interface (see spec §5).
+   A binding file (binding-default.css, or a per-target binding shipped with
+   the target's own pack) supplies the values. Type scale and spacing scale
+   are fixed here and not themeable. */
+
+/* ---------- scales (fixed layout contract) ---------- */
+.twin {
+  /* type scale — six steps, one role each */
+  --ts-micro: 0.625rem;   /* timestamps, source chips */
+  --ts-label: 0.6875rem;  /* control labels, table headers, lamp captions */
+  --ts-body:  0.8125rem;  /* primary reading text */
+  --ts-emph:  0.9375rem;  /* shelf titles, section headers */
+  --ts-h2:    1.125rem;   /* op-surface / card titles */
+  --ts-h1:    1.375rem;   /* twin header, once per page */
+  /* spacing scale — 4px base, seven steps */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  font-family: var(--twin-font-mono);
+  font-size: var(--ts-body);
+  color: var(--twin-txt);
+  background: var(--twin-bg);
+  line-height: 1.5;
+}
+/* density: which half of the scale internal gaps read from */
+.twin[data-density="compact"]     { --g-row: var(--sp-1); --g-block: var(--sp-2); --g-sect: var(--sp-3); --p-card: var(--sp-3); }
+.twin[data-density="comfortable"] { --g-row: var(--sp-2); --g-block: var(--sp-3); --g-sect: var(--sp-5); --p-card: var(--sp-4); }
+
+.twin * { box-sizing: border-box; }
+.twin h1, .twin h2, .twin h3 { font-family: var(--twin-font-display); margin: 0; color: var(--twin-txt-bright); }
+.twin h1 { font-size: var(--ts-h1); font-weight: 600; }
+.twin h2 { font-size: var(--ts-h2); font-weight: 600; }
+.twin h3 { font-size: var(--ts-emph); font-weight: 600; }
+
+/* ---------- 2.9 header / pin ---------- */
+.tw-header { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--twin-line); background: var(--twin-panel); }
+.tw-header .tw-pin { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-badge { font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius); padding: 1px var(--sp-2);
+  color: var(--twin-txt-dim); }
+.tw-badge.live { color: var(--twin-ok); border-color: var(--twin-ok); }
+.tw-badge.fixture { color: var(--twin-warn); border-color: var(--twin-warn); }
+.tw-stamp { display: none; font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--twin-stop); border: 1px dashed var(--twin-stop); border-radius: var(--twin-radius);
+  padding: 1px var(--sp-2); }
+.tw-stamp.on { display: inline-block; }   /* design-unverified: visible only when stamped */
+
+/* ---------- 2.5 lamps ---------- */
+.tw-lamp { display: inline-flex; align-items: center; gap: var(--sp-1);
+  font-size: var(--ts-label); white-space: nowrap; }
+.tw-lamp::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--twin-line); }
+.tw-lamp.ok::before   { background: var(--twin-ok); }
+.tw-lamp.warn::before { background: var(--twin-warn); }
+.tw-lamp.stop::before { background: var(--twin-stop); }
+.tw-lamp.info::before { background: var(--twin-info); }
+.tw-lamp.emph::before { background: var(--twin-emph); }
+/* stepped ordinal (e.g. autonomy grades) — discrete steps, never a fill */
+.tw-steps { display: inline-flex; gap: 3px; align-items: center; }
+.tw-steps i { width: 12px; height: 5px; border-radius: 2px; background: var(--twin-line); font-style: normal; }
+.tw-steps i.on-0 { background: var(--twin-ord-0); } .tw-steps i.on-1 { background: var(--twin-ord-1); }
+.tw-steps i.on-2 { background: var(--twin-ord-2); } .tw-steps i.on-3 { background: var(--twin-ord-3); }
+.tw-steps i.on-4 { background: var(--twin-ord-4); }
+.tw-steps .tw-steps-label { font-size: var(--ts-label); margin-left: var(--sp-1); }
+
+/* ---------- 2.6 card ---------- */
+.tw-card { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card); }
+.tw-card > h3 { margin-bottom: var(--g-block); }
+.tw-grid { display: grid; gap: var(--g-sect); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+/* ---------- 2.1 rack shelf + 2.2 op row ---------- */
+.tw-shelf { border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); overflow: hidden; }
+.tw-shelf > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline;
+  gap: var(--sp-2); padding: var(--g-block) var(--sp-3); font-family: var(--twin-font-display);
+  font-size: var(--ts-emph); font-weight: 600; color: var(--twin-txt-bright); }
+.tw-shelf > summary::-webkit-details-marker { display: none; }
+.tw-shelf > summary::before { content: "▸"; font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-shelf[open] > summary::before { content: "▾"; }
+.tw-shelf > summary .tw-count { font-size: var(--ts-label); font-weight: 400; color: var(--twin-txt-dim); }
+.tw-oprow { display: flex; align-items: baseline; gap: var(--sp-2); width: 100%;
+  padding: var(--g-row) var(--sp-3); border: 0; border-top: 1px solid var(--twin-line);
+  background: transparent; color: var(--twin-txt); font: inherit; text-align: left; cursor: pointer; }
+.tw-oprow:hover, .tw-oprow:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-oprow .tw-opname { font-weight: 600; white-space: nowrap; }
+.tw-oprow .tw-opnote { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+/* ---------- 2.3 op surface ---------- */
+.tw-opsurface { display: flex; flex-direction: column; gap: var(--g-block); }
+.tw-params { display: grid; gap: var(--g-row); }
+.tw-field { display: grid; gap: 2px; }
+.tw-field label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-field input, .tw-field textarea, .tw-palette input {
+  font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); width: 100%; }
+.tw-field input:focus-visible, .tw-field textarea:focus-visible, .tw-palette input:focus-visible {
+  outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.tw-btn { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.tw-btn:hover { border-color: var(--twin-accent); }
+.tw-btn.primary { border-color: var(--twin-accent); color: var(--twin-txt-bright); }
+.tw-btn.danger { border-color: var(--twin-stop); }
+.tw-btn:disabled { opacity: .45; cursor: default; }
+.tw-response { background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-2) var(--sp-3);
+  font-size: var(--ts-body); white-space: pre-wrap; word-break: break-word;
+  max-height: 40vh; overflow: auto; margin: 0; }
+.tw-response.error { border-color: var(--twin-stop); }
+.tw-src { font-size: var(--ts-micro); color: var(--twin-txt-dim); text-transform: uppercase;
+  letter-spacing: .06em; }
+
+/* ---------- 2.10 confirm dialog ---------- */
+.tw-dialog { border: 1px solid var(--twin-warn); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); padding: var(--p-card); display: flex; flex-direction: column;
+  gap: var(--g-block); max-width: 560px; }
+.tw-dialog.destructive { border-color: var(--twin-stop); }
+.tw-dialog .tw-consequence { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-dialog .tw-composed { max-height: 30vh; overflow: auto; }
+.tw-dialog .tw-actions { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+
+/* ---------- 2.7 table ---------- */
+.tw-table { width: 100%; border-collapse: collapse; font-size: var(--ts-body); }
+.tw-table th { font-size: var(--ts-label); text-align: left; color: var(--twin-txt-dim);
+  font-weight: 600; padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line); }
+.tw-table td { padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line);
+  vertical-align: baseline; }
+
+/* ---------- 2.8 log / stream ---------- */
+.tw-log { display: flex; flex-direction: column-reverse; gap: var(--g-row);
+  max-height: 32vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.tw-log li { display: flex; gap: var(--sp-2); align-items: baseline;
+  font-size: var(--ts-label); border-top: 1px solid var(--twin-line); padding-top: var(--g-row); }
+.tw-log time { font-size: var(--ts-micro); color: var(--twin-txt-dim); white-space: nowrap; }
+
+/* ---------- 2.4 palette ---------- */
+.tw-palette { position: relative; }
+.tw-palette-list { position: absolute; z-index: 30; left: 0; right: 0; margin: 2px 0 0;
+  padding: var(--sp-1); list-style: none; background: var(--twin-panel);
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  max-height: 40vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.tw-palette-list li { border-radius: var(--twin-radius); }
+.tw-palette-list button { display: flex; gap: var(--sp-2); align-items: baseline; width: 100%;
+  padding: var(--g-row) var(--sp-2); border: 0; background: transparent; color: var(--twin-txt);
+  font: inherit; text-align: left; cursor: pointer; border-radius: var(--twin-radius); }
+.tw-palette-list button:hover, .tw-palette-list button:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-palette-list .tw-facet { font-size: var(--ts-micro); color: var(--twin-txt-dim);
+  margin-left: auto; white-space: nowrap; }
+
+/* ---------- layout helpers ---------- */
+.tw-page { max-width: 1180px; margin: 0 auto; padding: var(--g-sect) var(--sp-5) var(--sp-7);
+  display: flex; flex-direction: column; gap: var(--g-sect); }
+.tw-row { display: flex; gap: var(--g-block); align-items: center; flex-wrap: wrap; }
+.tw-spacer { flex: 1; }

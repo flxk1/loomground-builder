@@ -1,0 +1,49 @@
+/* twin-sheet/1 — default binding: neutral accessible palette, light + dark.
+   The binding is the entire theming surface; components never see these
+   values directly, only the --twin-* names. */
+:root {
+  --twin-bg: #f7f7f5;
+  --twin-panel: #ffffff;
+  --twin-panel-2: #eef0ee;
+  --twin-line: #d6d9d6;
+  --twin-txt: #33383a;
+  --twin-txt-dim: #6b7377;
+  --twin-txt-bright: #16191a;
+  --twin-accent: #2f6f5f;
+  --twin-radius: 5px;
+  --twin-radius-lg: 9px;
+  --twin-font-display: system-ui, "Segoe UI", sans-serif;
+  --twin-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --twin-ok: #2e7d5b;
+  --twin-warn: #a8720a;
+  --twin-stop: #b3362c;
+  --twin-info: #2f5f8f;
+  --twin-emph: #a0522d;
+  --twin-ord-0: #5b7a99;
+  --twin-ord-1: #4f8a7a;
+  --twin-ord-2: #a8720a;
+  --twin-ord-3: #c26a2e;
+  --twin-ord-4: #b3362c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --twin-bg: #16181b;
+    --twin-panel: #1d2024;
+    --twin-panel-2: #23272c;
+    --twin-line: #383e45;
+    --twin-txt: #ccd2d6;
+    --twin-txt-dim: #8b949c;
+    --twin-txt-bright: #f0f2f3;
+    --twin-accent: #57b493;
+    --twin-ok: #5aa886;
+    --twin-warn: #d9a13d;
+    --twin-stop: #e2554a;
+    --twin-info: #6fa8d4;
+    --twin-emph: #df8b46;
+    --twin-ord-0: #5b7a99;
+    --twin-ord-1: #5f9088;
+    --twin-ord-2: #c8a23f;
+    --twin-ord-3: #df8b46;
+    --twin-ord-4: #cf463c;
+  }
+}

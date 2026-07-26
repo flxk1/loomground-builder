@@ -1,0 +1,159 @@
+/* spatial-kit/1 — the spatial (walkable 3D control room) genre substrate
+   (skill/genres/spatial/). Its own small vocabulary — room, floor, station
+   tile, door, adjacency cord — NOT twin-sheet/1 (the governance/list rack
+   kit: racks, op-surfaces, lamps) and NOT synth-kit/1 or daw-kit/1. This
+   file styles ONLY that vocabulary; it references nothing but the neutral
+   --twin-* interface and the sheet's own type/spacing scale (--ts-*, --sp-*,
+   --g-*, --p-card), already defined once by the component sheet
+   (skill/sheet/twin-sheet.css) inside its .twin scope — no new scale, no
+   parallel size system, per skill/SKILL.md step 4's composition discipline.
+   twin-sheet/1's components (opRow/opSurface/confirmGate/shelf/lamp) are
+   still used verbatim wherever this genre needs them (the read rack, the
+   confirm dialogs) — this kit only adds the DIRECT-MANIPULATION controls
+   (station dial, door step, link) the rack genre never needed. Every
+   control this kit renders carries the Control grammar's three hooks
+   (data-op, data-param, data-gesture — skill/SKILL.md's "Control grammar"
+   section); that is the ONLY thing that makes a station tile or a door
+   drivable by the live gate.
+
+   THE 3D IS CSS TRANSFORMS ONLY — no Three.js, no WebGL, no <canvas>. Every
+   control is a real DOM element (spatial-kit.js); this stylesheet only
+   moves those elements around in 3D space with `transform: translate3d/
+   rotateX/rotateY` under `transform-style: preserve-3d` + `perspective`.
+   That is what keeps the room self-contained (no external origin, no build
+   step) and jsdom-drivable (the live gate sees the same DOM regardless of
+   which of the three presentations below is active — jsdom has no CSS
+   layout engine, so it always effectively sees the "text" layer's plain
+   DOM order, which is exactly the D6 claim: the twin degrades 3D -> 2D ->
+   text without losing a single function, and the jsdom-driven live gate run
+   is itself proof the text layer still carries every control). */
+
+/* ---------- room / floor: the 3D scene container ---------- */
+.spatial-room { position: relative; margin: 0 auto; padding: var(--sp-6) 0;
+  display: flex; justify-content: center; }
+.spatial-floor { position: relative; width: 560px; max-width: 100%; height: 420px; }
+
+/* -- degrade: "3d" (default, no attribute required — the base rules below
+   already render the walkable room) -- */
+.twin[data-degrade="3d"] .spatial-room,
+.twin:not([data-degrade]) .spatial-room {
+  perspective: 1100px; perspective-origin: 50% 20%;
+}
+.twin[data-degrade="3d"] .spatial-floor,
+.twin:not([data-degrade]) .spatial-floor {
+  transform-style: preserve-3d;
+  transform: rotateX(55deg) rotateZ(-6deg);
+}
+.twin[data-degrade="3d"] .spatial-station,
+.twin[data-degrade="3d"] .spatial-door,
+.twin[data-degrade="3d"] .spatial-cord,
+.twin:not([data-degrade]) .spatial-station,
+.twin:not([data-degrade]) .spatial-door,
+.twin:not([data-degrade]) .spatial-cord {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate3d(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)), var(--sz, 0px));
+  transform-style: preserve-3d;
+}
+.twin[data-degrade="3d"] .spatial-cord,
+.twin:not([data-degrade]) .spatial-cord {
+  width: var(--cord-len, 0px); height: 4px; transform-origin: 0 50%;
+  transform: translate3d(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)), var(--sz, 0px))
+    rotate(var(--cord-rot, 0deg));
+}
+
+/* -- degrade: "2d" — the SAME DOM, transforms dropped: a normal flat grid.
+   No control is added or removed here, only its layout (SKILL.md's D6
+   note). -- */
+.twin[data-degrade="2d"] .spatial-room { perspective: none; padding: var(--g-sect) 0; }
+.twin[data-degrade="2d"] .spatial-floor {
+  height: auto; width: 100%;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--g-sect);
+}
+.twin[data-degrade="2d"] .spatial-station,
+.twin[data-degrade="2d"] .spatial-door {
+  position: static; transform: none; left: auto; top: auto;
+}
+.twin[data-degrade="2d"] .spatial-cord { display: none; } /* purely decorative line; the link list carries the function */
+
+/* -- degrade: "text" — the SAME DOM again, now a plain vertical list; every
+   purely-decorative sub-element (the colour tile/glyph, the cord) is
+   hidden, every data-op/data-param control stays exactly as reachable as in
+   3d/2d. This is what a screen reader, a jsdom harness, or a text-only
+   client sees — and it is what the live gate (testing/live/live-gate.mjs,
+   which never touches CSS at all) always drives, in every mode. -- */
+.twin[data-degrade="text"] .spatial-room { perspective: none; padding: var(--g-block) 0; }
+.twin[data-degrade="text"] .spatial-floor {
+  height: auto; width: 100%; display: flex; flex-direction: column; gap: var(--g-block);
+}
+.twin[data-degrade="text"] .spatial-station,
+.twin[data-degrade="text"] .spatial-door {
+  position: static; transform: none; left: auto; top: auto;
+  flex-direction: row; align-items: center; gap: var(--sp-3);
+}
+.twin[data-degrade="text"] .spatial-cord,
+.twin[data-degrade="text"] .station-face,
+.twin[data-degrade="text"] .door-face { display: none; }
+
+/* ---------- station tile: a labelled dial control ---------- */
+.spatial-station { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  width: 150px; padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); box-shadow: 0 6px 14px rgba(0,0,0,.12); }
+.station-face { width: 100%; height: 28px; border-radius: var(--twin-radius);
+  background: linear-gradient(135deg, var(--twin-accent), var(--twin-panel)); border: 1px solid var(--twin-line); }
+.station-label { font-size: var(--ts-label); color: var(--twin-txt-dim); text-align: center; }
+.station-value-row { display: flex; align-items: center; gap: var(--sp-2); }
+.station-value { width: 5.5em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.station-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.station-unit { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.station-commit { width: 100%; }
+.station-slot { width: 100%; }
+
+/* ---------- door: two step controls (open/close) ---------- */
+.spatial-door { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  width: 120px; padding: var(--sp-2) var(--sp-3); border: 1px dashed var(--twin-line);
+  border-radius: var(--twin-radius-lg); background: var(--twin-panel-2); }
+.door-face { width: 100%; height: 40px; border-radius: var(--twin-radius);
+  background: repeating-linear-gradient(45deg, var(--twin-panel), var(--twin-panel) 6px, var(--twin-line) 6px, var(--twin-line) 8px);
+  border: 1px solid var(--twin-line); }
+.door-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.door-state { display: flex; justify-content: center; }
+.door-controls { display: flex; gap: var(--sp-1); width: 100%; }
+.door-controls > div { flex: 1; }
+.door-commit { width: 100%; }
+.door-slot { width: 100%; }
+
+/* ---------- link: an adjacency-link control, new or existing ---------- */
+.spatial-cords { display: flex; flex-direction: column; gap: var(--g-block); }
+.spatial-link { display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.spatial-link.spatial-link-new { border-style: dashed; }
+.link-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.link-fields { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.link-field { flex: 1; min-width: 8em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); }
+.link-field:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.link-arrow { color: var(--twin-accent); font-weight: 600; }
+.link-assignment { font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt); flex: 1; }
+.link-slot { width: 100%; }
+.spatial-link-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* ---------- decorative adjacency cord (3d-only; see degrade rules above) --------- */
+.spatial-cord { background: linear-gradient(90deg, var(--twin-accent), transparent); border-radius: 2px; pointer-events: none; }
+
+/* ---------- state / witness read view ---------- */
+.spatial-state-table { width: 100%; }
+.spatial-rev { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+
+/* ---------- degrade switcher (a presentation-only control; NOT a
+   catalogued op — it carries no data-op/data-param, so it never appears in
+   the live gate's control count. Lets a human operator try 3d/2d/text.) --------- */
+.spatial-degrade-switch { display: flex; gap: var(--sp-2); align-items: center; }
+.spatial-degrade-switch button { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.spatial-degrade-switch button[aria-pressed="true"] { border-color: var(--twin-accent); color: var(--twin-txt-bright); }

@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory — knowledge graph twin</title>
+<style>
+:root {
+  /* identity tokens — swap these to restyle the twin */
+  --bg: #FBF7F1;
+  --surface: #FFFFFF;
+  --surface-warm: #F6EFE5;
+  --ink: #40372E;
+  --muted: #8A7E70;
+  --line: #E8DFD3;
+  --accent: #C0633B;
+  --accent-ink: #8F4526;
+  --accent-soft: #F4E3D8;
+  --lamp-fixture: #A8861F;
+  --lamp-fixture-bg: #F7EFD8;
+  --lamp-error: #A33C2E;
+  --lamp-error-bg: #F6E2DD;
+  --lamp-notsent: #6E6357;
+  --lamp-notsent-bg: #EDE7DE;
+  --type-person: #C0633B;
+  --type-topic: #7D8B4E;
+  --type-paper: #A26769;
+  --type-project: #5E8B7E;
+  --type-event: #C79A3C;
+  --type-other: #8A7E70;
+  --radius: 12px;
+  --radius-pill: 999px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); line-height: 1.5; font-size: 15px;
+}
+main { max-width: 980px; margin: 0 auto; padding: 24px 20px 80px; }
+header.site { max-width: 980px; margin: 0 auto; padding: 28px 20px 0; }
+h1 { font-size: 26px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 19px; font-weight: 650; margin: 0 0 4px; }
+h3 { font-size: 15px; font-weight: 650; margin: 0 0 6px; }
+.pin { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.banner {
+  background: var(--surface-warm); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 10px 14px; font-size: 13.5px;
+  margin-bottom: 26px;
+}
+.banner strong { color: var(--accent-ink); }
+section.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px 22px; margin-bottom: 26px;
+}
+.src {
+  display: inline-block; font-size: 11.5px; font-weight: 650;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--lamp-fixture-bg); color: var(--lamp-fixture);
+  border: 1px solid var(--lamp-fixture);
+  border-radius: var(--radius-pill); padding: 1px 10px; margin-left: 8px;
+  vertical-align: middle;
+}
+.sub { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
+.lamp {
+  display: inline-block; font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.04em; border-radius: var(--radius-pill);
+  padding: 1px 10px; border: 1px solid currentColor;
+}
+.lamp.fixture { color: var(--lamp-fixture); background: var(--lamp-fixture-bg); }
+.lamp.error { color: var(--lamp-error); background: var(--lamp-error-bg); }
+.lamp.notsent { color: var(--lamp-notsent); background: var(--lamp-notsent-bg); }
+svg.graph { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 10px 0 4px; font-size: 13px; }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.entities { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; margin-top: 14px; }
+.entity {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; background: var(--surface); cursor: pointer; text-align: left;
+  font: inherit; color: inherit; width: 100%;
+}
+.entity:hover, .entity:focus-visible { border-color: var(--accent); outline: none; }
+.entity .etype {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  border-radius: var(--radius-pill); padding: 1px 8px; color: #fff;
+}
+.entity h3 { margin: 6px 0 4px; }
+.entity ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.detail { border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 14px; }
+.detail .rels { font-size: 13.5px; }
+.detail .rels li { margin: 2px 0; }
+.rel-type { color: var(--accent-ink); font-style: italic; }
+input[type=text], textarea, select {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; width: 100%;
+}
+textarea { min-height: 64px; resize: vertical; }
+label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 3px; }
+label .hint { font-weight: 400; color: var(--muted); }
+button.primary, button.ghost, button.danger-cancel {
+  font: inherit; font-weight: 600; border-radius: var(--radius-pill);
+  padding: 7px 18px; cursor: pointer; border: 1px solid transparent;
+}
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-ink); }
+button.ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+button.ghost:hover { border-color: var(--muted); }
+.formrow { margin-bottom: 6px; }
+.writegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.writecard { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; background: var(--surface); }
+.writecard .opname { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.confirm {
+  border: 1.5px solid var(--accent); border-radius: var(--radius);
+  background: var(--accent-soft); padding: 14px 16px; margin-top: 12px;
+}
+.confirm h3 { color: var(--accent-ink); }
+.confirm pre {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px; font-family: var(--mono); font-size: 12px; overflow-x: auto; margin: 8px 0;
+}
+.confirm .note { font-size: 13px; margin: 8px 0 12px; }
+.confirm .actions { display: flex; gap: 10px; }
+.result-box {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-top: 12px; background: var(--surface);
+}
+.result-box.err { border-color: var(--lamp-error); background: var(--lamp-error-bg); }
+.result-box pre {
+  font-family: var(--mono); font-size: 12px; white-space: pre-wrap;
+  overflow-wrap: anywhere; margin: 6px 0 0; background: transparent;
+}
+.log { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13.5px; }
+.log li { border-top: 1px solid var(--line); padding: 8px 2px; }
+.log li:first-child { border-top: none; }
+.log .when { color: var(--muted); font-size: 12px; }
+table.surface { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 10px; }
+table.surface th, table.surface td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+table.surface th { border-top: none; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+table.surface code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.scope-in { color: var(--type-project); font-weight: 650; }
+.scope-out { color: var(--lamp-error); font-weight: 650; }
+.searchbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.searchbar input { flex: 1; min-width: 220px; width: auto; }
+footer.colophon { color: var(--muted); font-size: 12.5px; max-width: 980px; margin: 0 auto; padding: 0 20px 40px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <h1>Memory — knowledge graph twin</h1>
+  <p class="pin" id="pin">server pin loads from the initialize fixture</p>
+  <div class="banner" role="status">
+    <strong>Fixture-backed.</strong> Every view on this page renders JSON-RPC responses
+    captured from the server on 2026-07-23 (see <span class="mono">fixtures/</span>).
+    No live server is connected: reads replay captured calls, and write calls
+    cannot be dispatched — confirming a write records a <em>NOT SENT</em> entry, never a success.
+  </div>
+</header>
+<main>
+
+<section class="card" aria-labelledby="graph-h">
+  <h2 id="graph-h">Your graph <span class="src">Fixture · read_graph</span></h2>
+  <p class="sub">The whole knowledge graph, as returned by the server's
+    <span class="mono">read_graph</span> tool. Click an entity for its observations and relations.</p>
+  <div id="graph-svg"></div>
+  <div class="legend" id="legend" aria-label="Entity type colour legend (each node also carries its type as text)"></div>
+  <div class="entities" id="entity-cards"></div>
+  <div class="detail" id="entity-detail" hidden></div>
+</section>
+
+<section class="card" aria-labelledby="search-h">
+  <h2 id="search-h">Search <span class="src">Fixture replay · search_nodes</span></h2>
+  <p class="sub">Replays captured <span class="mono">search_nodes</span> calls.
+    Captured queries: <span id="captured-queries" class="mono"></span>.
+    Any other query needs a live server and will say so.</p>
+  <div class="searchbar">
+    <input type="text" id="search-input" list="captured-query-list"
+           aria-label="Search query (replay of captured calls only)" placeholder="e.g. graph">
+    <datalist id="captured-query-list"></datalist>
+    <button class="primary" id="search-btn" type="button">Replay captured search</button>
+    <button class="ghost" id="error-btn" type="button">Replay captured error call</button>
+  </div>
+  <div id="search-result"></div>
+  <h3 style="margin-top:18px">Open nodes <span class="src">Fixture · open_nodes</span></h3>
+  <p class="sub" id="open-nodes-sub"></p>
+  <div id="open-nodes-result"></div>
+</section>
+
+<section class="card" aria-labelledby="add-h">
+  <h2 id="add-h">Add to your graph</h2>
+  <p class="sub">These three forms map to the server's non-destructive write tools.
+    Each write requires an explicit confirm card first — nothing is sent on typing,
+    rendering, or page load. In this fixture-backed build no server is connected,
+    so a confirmed call is logged as <span class="lamp notsent">● NOT SENT</span> and
+    the graph view does not change.</p>
+  <div class="writegrid">
+
+    <div class="writecard">
+      <h3>Add an entity</h3>
+      <p class="opname">op: create_entities · mutates (readOnlyHint: false)</p>
+      <div class="formrow"><label for="e-name">Name</label>
+        <input type="text" id="e-name" placeholder="e.g. Vrandecic &amp; Kroetzsch 2014"></div>
+      <div class="formrow"><label for="e-type">Entity type</label>
+        <input type="text" id="e-type" placeholder="e.g. paper"></div>
+      <div class="formrow"><label for="e-obs">Observations <span class="hint">(one per line)</span></label>
+        <textarea id="e-obs" placeholder="Wikidata: a free collaborative knowledge base"></textarea></div>
+      <button class="primary" type="button" data-op="create_entities">Review &amp; confirm…</button>
+    </div>
+
+    <div class="writecard">
+      <h3>Add a relation</h3>
+      <p class="opname">op: create_relations · mutates (readOnlyHint: false)</p>
+      <div class="formrow"><label for="r-from">From <span class="hint">(entity name)</span></label>
+        <input type="text" id="r-from" list="entity-name-list"></div>
+      <div class="formrow"><label for="r-to">To <span class="hint">(entity name)</span></label>
+        <input type="text" id="r-to" list="entity-name-list"></div>
+      <div class="formrow"><label for="r-type">Relation type <span class="hint">(active voice)</span></label>
+        <input type="text" id="r-type" placeholder="e.g. cites"></div>
+      <datalist id="entity-name-list"></datalist>
+      <button class="primary" type="button" data-op="create_relations">Review &amp; confirm…</button>
+    </div>
+
+    <div class="writecard">
+      <h3>Add observations</h3>
+      <p class="opname">op: add_observations · mutates (readOnlyHint: false)</p>
+      <div class="formrow"><label for="o-entity">Entity <span class="hint">(must already exist)</span></label>
+        <input type="text" id="o-entity" list="entity-name-list"></div>
+      <div class="formrow"><label for="o-contents">Observations <span class="hint">(one per line)</span></label>
+        <textarea id="o-contents" placeholder="Gave a talk on entity linking, March 2026"></textarea></div>
+      <button class="primary" type="button" data-op="add_observations">Review &amp; confirm…</button>
+    </div>
+  </div>
+  <div id="confirm-host"></div>
+  <h3 style="margin-top:20px">Call log</h3>
+  <ul class="log" id="call-log" aria-live="polite"><li class="when" id="log-empty">No calls attempted yet.</li></ul>
+</section>
+
+<section class="card" aria-labelledby="surface-h">
+  <h2 id="surface-h">Server surface &amp; scope <span class="src">Fixture · tools/list</span></h2>
+  <p class="sub">Every tool the server catalogues, with its annotation stamps verbatim.
+    Tools marked <span class="scope-out">excluded</span> have no control on this page;
+    the reason is stated per row and in the rationale.</p>
+  <div style="overflow-x:auto"><table class="surface" id="surface-table"></table></div>
+</section>
+
+</main>
+<footer class="colophon">
+  Mental twin (fixture-backed) of the MCP reference memory server ·
+  fixtures captured 2026-07-23 via a stdio JSON-RPC driver ·
+  memory file: a scratchpad-local <span class="mono">memory.json</span> ·
+  no external origins, no network calls.
+</footer>
+
+<script>
+"use strict";
+/* Captured fixtures, embedded verbatim by the build-time injector.
+   Source of truth: the files in fixtures/ next to this twin. */
+const FIXTURES = {
+ "error-search_nodes-missing-query": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "MCP error -32602: Input validation error: Invalid arguments for tool search_nodes: [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"query\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  }\n]"
+    }
+   ],
+   "isError": true
+  },
+  "jsonrpc": "2.0",
+  "id": 11
+ },
+ "initialize": {
+  "result": {
+   "protocolVersion": "2025-06-18",
+   "capabilities": {
+    "tools": {
+     "listChanged": true
+    },
+    "resources": {
+     "listChanged": true,
+     "subscribe": true
+    }
+   },
+   "serverInfo": {
+    "name": "memory-server",
+    "version": "0.6.3"
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 1
+ },
+ "manifest": {
+  "capturedAt": "2026-07-23T06:45:24.637Z",
+  "driver": "driver.mjs",
+  "entries": [
+   {
+    "file": "initialize.json",
+    "kind": "handshake",
+    "method": "initialize",
+    "params": {
+     "protocolVersion": "2025-06-18",
+     "capabilities": {},
+     "clientInfo": {
+      "name": "mental-twin",
+      "version": "0.1"
+     }
+    }
+   },
+   {
+    "file": "tools-list.json",
+    "kind": "catalogue",
+    "method": "tools/list",
+    "params": {}
+   },
+   {
+    "file": "read_graph.json",
+    "kind": "read",
+    "method": "tools/call",
+    "params": {
+     "name": "read_graph",
+     "arguments": {}
+    }
+   },
+   {
+    "file": "search_nodes-graph.json",
+    "kind": "read",
+    "method": "tools/call",
+    "params": {
+     "name": "search_nodes",
+     "arguments": {
+      "query": "graph"
+     }
+    }
+   },
+   {
+    "file": "search_nodes-osaka.json",
+    "kind": "read",
+    "method": "tools/call",
+    "params": {
+     "name": "search_nodes",
+     "arguments": {
+      "query": "osaka"
+     }
+    }
+   },
+   {
+    "file": "search_nodes-nomatch.json",
+    "kind": "read",
+    "method": "tools/call",
+    "params": {
+     "name": "search_nodes",
+     "arguments": {
+      "query": "quantum chromodynamics"
+     }
+    }
+   },
+   {
+    "file": "open_nodes-emily-chen.json",
+    "kind": "read",
+    "method": "tools/call",
+    "params": {
+     "name": "open_nodes",
+     "arguments": {
+      "names": [
+       "Emily Chen",
+       "Personal KG curation"
+      ]
+     }
+    }
+   },
+   {
+    "file": "error-search_nodes-missing-query.json",
+    "kind": "read-error",
+    "method": "tools/call",
+    "params": {
+     "name": "search_nodes",
+     "arguments": {}
+    }
+   }
+  ]
+ },
+ "open_nodes-emily-chen": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "{\n  \"entities\": [\n    {\n      \"name\": \"Emily Chen\",\n      \"entityType\": \"person\",\n      \"observations\": [\n        \"Collaborator on the personal KG curation project\",\n        \"Met at ISWC 2025 in Osaka\",\n        \"Works on entity resolution at scale\"\n      ]\n    },\n    {\n      \"name\": \"Personal KG curation\",\n      \"entityType\": \"project\",\n      \"observations\": [\n        \"Curating a personal research knowledge graph\",\n        \"Backed by the MCP memory server as the store\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"Personal KG curation\",\n      \"relationType\": \"collaborates on\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"focuses on\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"ISWC 2025\",\n      \"relationType\": \"attended\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Hogan et al. 2021\",\n      \"relationType\": \"cites\"\n    }\n  ]\n}"
+    }
+   ],
+   "structuredContent": {
+    "entities": [
+     {
+      "name": "Emily Chen",
+      "entityType": "person",
+      "observations": [
+       "Collaborator on the personal KG curation project",
+       "Met at ISWC 2025 in Osaka",
+       "Works on entity resolution at scale"
+      ]
+     },
+     {
+      "name": "Personal KG curation",
+      "entityType": "project",
+      "observations": [
+       "Curating a personal research knowledge graph",
+       "Backed by the MCP memory server as the store"
+      ]
+     }
+    ],
+    "relations": [
+     {
+      "from": "Emily Chen",
+      "to": "Personal KG curation",
+      "relationType": "collaborates on"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Knowledge Graphs",
+      "relationType": "focuses on"
+     },
+     {
+      "from": "Emily Chen",
+      "to": "ISWC 2025",
+      "relationType": "attended"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Hogan et al. 2021",
+      "relationType": "cites"
+     }
+    ]
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 10
+ },
+ "read_graph": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "{\n  \"entities\": [\n    {\n      \"name\": \"Knowledge Graphs\",\n      \"entityType\": \"topic\",\n      \"observations\": [\n        \"Structured representation of entities and their relations\",\n        \"Core reading: the 2021 ACM Computing Surveys overview\"\n      ]\n    },\n    {\n      \"name\": \"Hogan et al. 2021\",\n      \"entityType\": \"paper\",\n      \"observations\": [\n        \"Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)\",\n        \"Covers embeddings, graph neural networks, and reasoning\"\n      ]\n    },\n    {\n      \"name\": \"Emily Chen\",\n      \"entityType\": \"person\",\n      \"observations\": [\n        \"Collaborator on the personal KG curation project\",\n        \"Met at ISWC 2025 in Osaka\",\n        \"Works on entity resolution at scale\"\n      ]\n    },\n    {\n      \"name\": \"Personal KG curation\",\n      \"entityType\": \"project\",\n      \"observations\": [\n        \"Curating a personal research knowledge graph\",\n        \"Backed by the MCP memory server as the store\"\n      ]\n    },\n    {\n      \"name\": \"ISWC 2025\",\n      \"entityType\": \"event\",\n      \"observations\": [\n        \"International Semantic Web Conference, Osaka, November 2025\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"from\": \"Hogan et al. 2021\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"surveys\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"Personal KG curation\",\n      \"relationType\": \"collaborates on\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"focuses on\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"ISWC 2025\",\n      \"relationType\": \"attended\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Hogan et al. 2021\",\n      \"relationType\": \"cites\"\n    }\n  ]\n}"
+    }
+   ],
+   "structuredContent": {
+    "entities": [
+     {
+      "name": "Knowledge Graphs",
+      "entityType": "topic",
+      "observations": [
+       "Structured representation of entities and their relations",
+       "Core reading: the 2021 ACM Computing Surveys overview"
+      ]
+     },
+     {
+      "name": "Hogan et al. 2021",
+      "entityType": "paper",
+      "observations": [
+       "Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)",
+       "Covers embeddings, graph neural networks, and reasoning"
+      ]
+     },
+     {
+      "name": "Emily Chen",
+      "entityType": "person",
+      "observations": [
+       "Collaborator on the personal KG curation project",
+       "Met at ISWC 2025 in Osaka",
+       "Works on entity resolution at scale"
+      ]
+     },
+     {
+      "name": "Personal KG curation",
+      "entityType": "project",
+      "observations": [
+       "Curating a personal research knowledge graph",
+       "Backed by the MCP memory server as the store"
+      ]
+     },
+     {
+      "name": "ISWC 2025",
+      "entityType": "event",
+      "observations": [
+       "International Semantic Web Conference, Osaka, November 2025"
+      ]
+     }
+    ],
+    "relations": [
+     {
+      "from": "Hogan et al. 2021",
+      "to": "Knowledge Graphs",
+      "relationType": "surveys"
+     },
+     {
+      "from": "Emily Chen",
+      "to": "Personal KG curation",
+      "relationType": "collaborates on"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Knowledge Graphs",
+      "relationType": "focuses on"
+     },
+     {
+      "from": "Emily Chen",
+      "to": "ISWC 2025",
+      "relationType": "attended"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Hogan et al. 2021",
+      "relationType": "cites"
+     }
+    ]
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 6
+ },
+ "resources-list": {
+  "result": {
+   "resources": [
+    {
+     "uri": "memory://knowledge-graph",
+     "name": "knowledge-graph",
+     "title": "Knowledge Graph",
+     "description": "The full knowledge graph with all entities and relations",
+     "mimeType": "application/json"
+    }
+   ]
+  },
+  "jsonrpc": "2.0",
+  "id": 2
+ },
+ "resources-read": {
+  "result": {
+   "contents": [
+    {
+     "uri": "memory://knowledge-graph",
+     "mimeType": "application/json",
+     "text": "{\n  \"entities\": [\n    {\n      \"name\": \"Knowledge Graphs\",\n      \"entityType\": \"topic\",\n      \"observations\": [\n        \"Structured representation of entities and their relations\",\n        \"Core reading: the 2021 ACM Computing Surveys overview\"\n      ]\n    },\n    {\n      \"name\": \"Hogan et al. 2021\",\n      \"entityType\": \"paper\",\n      \"observations\": [\n        \"Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)\",\n        \"Covers embeddings, graph neural networks, and reasoning\"\n      ]\n    },\n    {\n      \"name\": \"Emily Chen\",\n      \"entityType\": \"person\",\n      \"observations\": [\n        \"Collaborator on the personal KG curation project\",\n        \"Met at ISWC 2025 in Osaka\",\n        \"Works on entity resolution at scale\"\n      ]\n    },\n    {\n      \"name\": \"Personal KG curation\",\n      \"entityType\": \"project\",\n      \"observations\": [\n        \"Curating a personal research knowledge graph\",\n        \"Backed by the MCP memory server as the store\"\n      ]\n    },\n    {\n      \"name\": \"ISWC 2025\",\n      \"entityType\": \"event\",\n      \"observations\": [\n        \"International Semantic Web Conference, Osaka, November 2025\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"from\": \"Hogan et al. 2021\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"surveys\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"Personal KG curation\",\n      \"relationType\": \"collaborates on\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"focuses on\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"ISWC 2025\",\n      \"relationType\": \"attended\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Hogan et al. 2021\",\n      \"relationType\": \"cites\"\n    }\n  ]\n}"
+    }
+   ]
+  },
+  "jsonrpc": "2.0",
+  "id": 3
+ },
+ "search_nodes-graph": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "{\n  \"entities\": [\n    {\n      \"name\": \"Knowledge Graphs\",\n      \"entityType\": \"topic\",\n      \"observations\": [\n        \"Structured representation of entities and their relations\",\n        \"Core reading: the 2021 ACM Computing Surveys overview\"\n      ]\n    },\n    {\n      \"name\": \"Hogan et al. 2021\",\n      \"entityType\": \"paper\",\n      \"observations\": [\n        \"Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)\",\n        \"Covers embeddings, graph neural networks, and reasoning\"\n      ]\n    },\n    {\n      \"name\": \"Personal KG curation\",\n      \"entityType\": \"project\",\n      \"observations\": [\n        \"Curating a personal research knowledge graph\",\n        \"Backed by the MCP memory server as the store\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"from\": \"Hogan et al. 2021\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"surveys\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"Personal KG curation\",\n      \"relationType\": \"collaborates on\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Knowledge Graphs\",\n      \"relationType\": \"focuses on\"\n    },\n    {\n      \"from\": \"Personal KG curation\",\n      \"to\": \"Hogan et al. 2021\",\n      \"relationType\": \"cites\"\n    }\n  ]\n}"
+    }
+   ],
+   "structuredContent": {
+    "entities": [
+     {
+      "name": "Knowledge Graphs",
+      "entityType": "topic",
+      "observations": [
+       "Structured representation of entities and their relations",
+       "Core reading: the 2021 ACM Computing Surveys overview"
+      ]
+     },
+     {
+      "name": "Hogan et al. 2021",
+      "entityType": "paper",
+      "observations": [
+       "Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)",
+       "Covers embeddings, graph neural networks, and reasoning"
+      ]
+     },
+     {
+      "name": "Personal KG curation",
+      "entityType": "project",
+      "observations": [
+       "Curating a personal research knowledge graph",
+       "Backed by the MCP memory server as the store"
+      ]
+     }
+    ],
+    "relations": [
+     {
+      "from": "Hogan et al. 2021",
+      "to": "Knowledge Graphs",
+      "relationType": "surveys"
+     },
+     {
+      "from": "Emily Chen",
+      "to": "Personal KG curation",
+      "relationType": "collaborates on"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Knowledge Graphs",
+      "relationType": "focuses on"
+     },
+     {
+      "from": "Personal KG curation",
+      "to": "Hogan et al. 2021",
+      "relationType": "cites"
+     }
+    ]
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 7
+ },
+ "search_nodes-nomatch": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "{\n  \"entities\": [],\n  \"relations\": []\n}"
+    }
+   ],
+   "structuredContent": {
+    "entities": [],
+    "relations": []
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 9
+ },
+ "search_nodes-osaka": {
+  "result": {
+   "content": [
+    {
+     "type": "text",
+     "text": "{\n  \"entities\": [\n    {\n      \"name\": \"Emily Chen\",\n      \"entityType\": \"person\",\n      \"observations\": [\n        \"Collaborator on the personal KG curation project\",\n        \"Met at ISWC 2025 in Osaka\",\n        \"Works on entity resolution at scale\"\n      ]\n    },\n    {\n      \"name\": \"ISWC 2025\",\n      \"entityType\": \"event\",\n      \"observations\": [\n        \"International Semantic Web Conference, Osaka, November 2025\"\n      ]\n    }\n  ],\n  \"relations\": [\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"Personal KG curation\",\n      \"relationType\": \"collaborates on\"\n    },\n    {\n      \"from\": \"Emily Chen\",\n      \"to\": \"ISWC 2025\",\n      \"relationType\": \"attended\"\n    }\n  ]\n}"
+    }
+   ],
+   "structuredContent": {
+    "entities": [
+     {
+      "name": "Emily Chen",
+      "entityType": "person",
+      "observations": [
+       "Collaborator on the personal KG curation project",
+       "Met at ISWC 2025 in Osaka",
+       "Works on entity resolution at scale"
+      ]
+     },
+     {
+      "name": "ISWC 2025",
+      "entityType": "event",
+      "observations": [
+       "International Semantic Web Conference, Osaka, November 2025"
+      ]
+     }
+    ],
+    "relations": [
+     {
+      "from": "Emily Chen",
+      "to": "Personal KG curation",
+      "relationType": "collaborates on"
+     },
+     {
+      "from": "Emily Chen",
+      "to": "ISWC 2025",
+      "relationType": "attended"
+     }
+    ]
+   }
+  },
+  "jsonrpc": "2.0",
+  "id": 8
+ },
+ "seed-add_observations": {
+  "request": {
+   "jsonrpc": "2.0",
+   "id": 5,
+   "method": "tools/call",
+   "params": {
+    "name": "add_observations",
+    "arguments": {
+     "observations": [
+      {
+       "entityName": "Emily Chen",
+       "contents": [
+        "Works on entity resolution at scale"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "response": {
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "[\n  {\n    \"entityName\": \"Emily Chen\",\n    \"addedObservations\": [\n      \"Works on entity resolution at scale\"\n    ]\n  }\n]"
+     }
+    ],
+    "structuredContent": {
+     "results": [
+      {
+       "entityName": "Emily Chen",
+       "addedObservations": [
+        "Works on entity resolution at scale"
+       ]
+      }
+     ]
+    }
+   },
+   "jsonrpc": "2.0",
+   "id": 5
+  }
+ },
+ "seed-create_entities": {
+  "request": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "tools/call",
+   "params": {
+    "name": "create_entities",
+    "arguments": {
+     "entities": [
+      {
+       "name": "Knowledge Graphs",
+       "entityType": "topic",
+       "observations": [
+        "Structured representation of entities and their relations",
+        "Core reading: the 2021 ACM Computing Surveys overview"
+       ]
+      },
+      {
+       "name": "Hogan et al. 2021",
+       "entityType": "paper",
+       "observations": [
+        "Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)",
+        "Covers embeddings, graph neural networks, and reasoning"
+       ]
+      },
+      {
+       "name": "Emily Chen",
+       "entityType": "person",
+       "observations": [
+        "Collaborator on the personal KG curation project",
+        "Met at ISWC 2025 in Osaka"
+       ]
+      },
+      {
+       "name": "Personal KG curation",
+       "entityType": "project",
+       "observations": [
+        "Curating a personal research knowledge graph",
+        "Backed by the MCP memory server as the store"
+       ]
+      },
+      {
+       "name": "ISWC 2025",
+       "entityType": "event",
+       "observations": [
+        "International Semantic Web Conference, Osaka, November 2025"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "response": {
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "[\n  {\n    \"name\": \"Knowledge Graphs\",\n    \"entityType\": \"topic\",\n    \"observations\": [\n      \"Structured representation of entities and their relations\",\n      \"Core reading: the 2021 ACM Computing Surveys overview\"\n    ]\n  },\n  {\n    \"name\": \"Hogan et al. 2021\",\n    \"entityType\": \"paper\",\n    \"observations\": [\n      \"Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)\",\n      \"Covers embeddings, graph neural networks, and reasoning\"\n    ]\n  },\n  {\n    \"name\": \"Emily Chen\",\n    \"entityType\": \"person\",\n    \"observations\": [\n      \"Collaborator on the personal KG curation project\",\n      \"Met at ISWC 2025 in Osaka\"\n    ]\n  },\n  {\n    \"name\": \"Personal KG curation\",\n    \"entityType\": \"project\",\n    \"observations\": [\n      \"Curating a personal research knowledge graph\",\n      \"Backed by the MCP memory server as the store\"\n    ]\n  },\n  {\n    \"name\": \"ISWC 2025\",\n    \"entityType\": \"event\",\n    \"observations\": [\n      \"International Semantic Web Conference, Osaka, November 2025\"\n    ]\n  }\n]"
+     }
+    ],
+    "structuredContent": {
+     "entities": [
+      {
+       "name": "Knowledge Graphs",
+       "entityType": "topic",
+       "observations": [
+        "Structured representation of entities and their relations",
+        "Core reading: the 2021 ACM Computing Surveys overview"
+       ]
+      },
+      {
+       "name": "Hogan et al. 2021",
+       "entityType": "paper",
+       "observations": [
+        "Survey paper: Knowledge Graphs, ACM Computing Surveys 54(4)",
+        "Covers embeddings, graph neural networks, and reasoning"
+       ]
+      },
+      {
+       "name": "Emily Chen",
+       "entityType": "person",
+       "observations": [
+        "Collaborator on the personal KG curation project",
+        "Met at ISWC 2025 in Osaka"
+       ]
+      },
+      {
+       "name": "Personal KG curation",
+       "entityType": "project",
+       "observations": [
+        "Curating a personal research knowledge graph",
+        "Backed by the MCP memory server as the store"
+       ]
+      },
+      {
+       "name": "ISWC 2025",
+       "entityType": "event",
+       "observations": [
+        "International Semantic Web Conference, Osaka, November 2025"
+       ]
+      }
+     ]
+    }
+   },
+   "jsonrpc": "2.0",
+   "id": 3
+  }
+ },
+ "seed-create_relations": {
+  "request": {
+   "jsonrpc": "2.0",
+   "id": 4,
+   "method": "tools/call",
+   "params": {
+    "name": "create_relations",
+    "arguments": {
+     "relations": [
+      {
+       "from": "Hogan et al. 2021",
+       "to": "Knowledge Graphs",
+       "relationType": "surveys"
+      },
+      {
+       "from": "Emily Chen",
+       "to": "Personal KG curation",
+       "relationType": "collaborates on"
+      },
+      {
+       "from": "Personal KG curation",
+       "to": "Knowledge Graphs",
+       "relationType": "focuses on"
+      },
+      {
+       "from": "Emily Chen",
+       "to": "ISWC 2025",
+       "relationType": "attended"
+      },
+      {
+       "from": "Personal KG curation",
+       "to": "Hogan et al. 2021",
+       "relationType": "cites"
+      }
+     ]
+    }
+   }
+  },
+  "response": {
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "[\n  {\n    \"from\": \"Hogan et al. 2021\",\n    \"to\": \"Knowledge Graphs\",\n    \"relationType\": \"surveys\"\n  },\n  {\n    \"from\": \"Emily Chen\",\n    \"to\": \"Personal KG curation\",\n    \"relationType\": \"collaborates on\"\n  },\n  {\n    \"from\": \"Personal KG curation\",\n    \"to\": \"Knowledge Graphs\",\n    \"relationType\": \"focuses on\"\n  },\n  {\n    \"from\": \"Emily Chen\",\n    \"to\": \"ISWC 2025\",\n    \"relationType\": \"attended\"\n  },\n  {\n    \"from\": \"Personal KG curation\",\n    \"to\": \"Hogan et al. 2021\",\n    \"relationType\": \"cites\"\n  }\n]"
+     }
+    ],
+    "structuredContent": {
+     "relations": [
+      {
+       "from": "Hogan et al. 2021",
+       "to": "Knowledge Graphs",
+       "relationType": "surveys"
+      },
+      {
+       "from": "Emily Chen",
+       "to": "Personal KG curation",
+       "relationType": "collaborates on"
+      },
+      {
+       "from": "Personal KG curation",
+       "to": "Knowledge Graphs",
+       "relationType": "focuses on"
+      },
+      {
+       "from": "Emily Chen",
+       "to": "ISWC 2025",
+       "relationType": "attended"
+      },
+      {
+       "from": "Personal KG curation",
+       "to": "Hogan et al. 2021",
+       "relationType": "cites"
+      }
+     ]
+    }
+   },
+   "jsonrpc": "2.0",
+   "id": 4
+  }
+ },
+ "tools-list": {
+  "result": {
+   "tools": [
+    {
+     "name": "create_entities",
+     "title": "Create Entities",
+     "description": "Create multiple new entities in the knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entities": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "description": "The name of the entity"
+          },
+          "entityType": {
+           "type": "string",
+           "description": "The type of the entity"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents associated with the entity"
+          }
+         },
+         "required": [
+          "name",
+          "entityType",
+          "observations"
+         ]
+        }
+       }
+      },
+      "required": [
+       "entities"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entities": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "description": "The name of the entity"
+          },
+          "entityType": {
+           "type": "string",
+           "description": "The type of the entity"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents associated with the entity"
+          }
+         },
+         "required": [
+          "name",
+          "entityType",
+          "observations"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "entities"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "create_relations",
+     "title": "Create Relations",
+     "description": "Create multiple new relations between entities in the knowledge graph. Relations should be in active voice",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ]
+        }
+       }
+      },
+      "required": [
+       "relations"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "relations"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "add_observations",
+     "title": "Add Observations",
+     "description": "Add new observations to existing entities in the knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "observations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "entityName": {
+           "type": "string",
+           "description": "The name of the entity to add the observations to"
+          },
+          "contents": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents to add"
+          }
+         },
+         "required": [
+          "entityName",
+          "contents"
+         ]
+        }
+       }
+      },
+      "required": [
+       "observations"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "results": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "entityName": {
+           "type": "string"
+          },
+          "addedObservations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          }
+         },
+         "required": [
+          "entityName",
+          "addedObservations"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "results"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "delete_entities",
+     "title": "Delete Entities",
+     "description": "Delete multiple entities and their associated relations from the knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entityNames": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "An array of entity names to delete"
+       }
+      },
+      "required": [
+       "entityNames"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "success": {
+        "type": "boolean"
+       },
+       "message": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "success",
+       "message"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "delete_observations",
+     "title": "Delete Observations",
+     "description": "Delete specific observations from entities in the knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "deletions": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "entityName": {
+           "type": "string",
+           "description": "The name of the entity containing the observations"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observations to delete"
+          }
+         },
+         "required": [
+          "entityName",
+          "observations"
+         ]
+        }
+       }
+      },
+      "required": [
+       "deletions"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "success": {
+        "type": "boolean"
+       },
+       "message": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "success",
+       "message"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "delete_relations",
+     "title": "Delete Relations",
+     "description": "Delete multiple relations from the knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ]
+        },
+        "description": "An array of relations to delete"
+       }
+      },
+      "required": [
+       "relations"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "success": {
+        "type": "boolean"
+       },
+       "message": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "success",
+       "message"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "read_graph",
+     "title": "Read Graph",
+     "description": "Read the entire knowledge graph",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {}
+     },
+     "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entities": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "description": "The name of the entity"
+          },
+          "entityType": {
+           "type": "string",
+           "description": "The type of the entity"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents associated with the entity"
+          }
+         },
+         "required": [
+          "name",
+          "entityType",
+          "observations"
+         ],
+         "additionalProperties": false
+        }
+       },
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "entities",
+       "relations"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "search_nodes",
+     "title": "Search Nodes",
+     "description": "Search for nodes in the knowledge graph based on a query",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "query": {
+        "type": "string",
+        "description": "The search query to match against entity names, types, and observation content"
+       }
+      },
+      "required": [
+       "query"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entities": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "description": "The name of the entity"
+          },
+          "entityType": {
+           "type": "string",
+           "description": "The type of the entity"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents associated with the entity"
+          }
+         },
+         "required": [
+          "name",
+          "entityType",
+          "observations"
+         ],
+         "additionalProperties": false
+        }
+       },
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "entities",
+       "relations"
+      ],
+      "additionalProperties": false
+     }
+    },
+    {
+     "name": "open_nodes",
+     "title": "Open Nodes",
+     "description": "Open specific nodes in the knowledge graph by their names",
+     "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "names": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "An array of entity names to retrieve"
+       }
+      },
+      "required": [
+       "names"
+      ]
+     },
+     "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+     },
+     "execution": {
+      "taskSupport": "forbidden"
+     },
+     "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+       "entities": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "description": "The name of the entity"
+          },
+          "entityType": {
+           "type": "string",
+           "description": "The type of the entity"
+          },
+          "observations": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "An array of observation contents associated with the entity"
+          }
+         },
+         "required": [
+          "name",
+          "entityType",
+          "observations"
+         ],
+         "additionalProperties": false
+        }
+       },
+       "relations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "from": {
+           "type": "string",
+           "description": "The name of the entity where the relation starts"
+          },
+          "to": {
+           "type": "string",
+           "description": "The name of the entity where the relation ends"
+          },
+          "relationType": {
+           "type": "string",
+           "description": "The type of the relation"
+          }
+         },
+         "required": [
+          "from",
+          "to",
+          "relationType"
+         ],
+         "additionalProperties": false
+        }
+       }
+      },
+      "required": [
+       "entities",
+       "relations"
+      ],
+      "additionalProperties": false
+     }
+    }
+   ]
+  },
+  "jsonrpc": "2.0",
+  "id": 2
+ }
+};
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const TYPE_TOKENS = { person:"--type-person", topic:"--type-topic", paper:"--type-paper",
+  project:"--type-project", event:"--type-event" };
+const typeColor = (t) => `var(${TYPE_TOKENS[t] || "--type-other"})`;
+// A tools/call result carries the payload in structuredContent (and as JSON
+// text in content[0]); render from structuredContent, fall back to text.
+function payload(fx) {
+  const r = fx.result;
+  if (r.structuredContent) return r.structuredContent;
+  try { return JSON.parse(r.content[0].text); } catch { return null; }
+}
+
+/* ---------- header pin (initialize fixture) ---------- */
+const init = FIXTURES["initialize"].result;
+$("pin").textContent =
+  `Twin of ${init.serverInfo.name} v${init.serverInfo.version} · MCP protocol ${init.protocolVersion} · stdio`;
+
+/* ---------- graph view (read_graph fixture) ---------- */
+const graph = payload(FIXTURES["read_graph"]);
+const entities = graph.entities, relations = graph.relations;
+
+// legend
+$("legend").innerHTML = [...new Set(entities.map(e => e.entityType))].map(t =>
+  `<span class="key"><span class="swatch" style="background:${typeColor(t)}"></span>${esc(t)}</span>`
+).join("");
+
+// simple ellipse layout — presentation only; data is the fixture verbatim
+(function drawGraph() {
+  const W = 920, H = 420, cx = W/2, cy = H/2, rx = W/2 - 130, ry = H/2 - 60;
+  const pos = {};
+  entities.forEach((e, i) => {
+    const a = (2 * Math.PI * i) / entities.length - Math.PI / 2;
+    pos[e.name] = { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
+  });
+  let edges = "", labels = "";
+  relations.forEach(r => {
+    const a = pos[r.from], b = pos[r.to];
+    if (!a || !b) return;
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    edges += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+      stroke="var(--line)" stroke-width="2"/>`;
+    labels += `<text x="${mx}" y="${my - 5}" text-anchor="middle"
+      font-size="11" font-style="italic" fill="var(--accent-ink)"
+      paint-order="stroke" stroke="var(--surface)" stroke-width="4">${esc(r.relationType)}</text>`;
+  });
+  let nodes = "";
+  entities.forEach(e => {
+    const p = pos[e.name];
+    nodes += `<g role="listitem" aria-label="${esc(e.name)} (${esc(e.entityType)})">
+      <circle cx="${p.x}" cy="${p.y}" r="10" fill="${typeColor(e.entityType)}"/>
+      <text x="${p.x}" y="${p.y - 18}" text-anchor="middle" font-size="13" font-weight="600"
+        fill="var(--ink)" paint-order="stroke" stroke="var(--surface)" stroke-width="4">${esc(e.name)}</text>
+      <text x="${p.x}" y="${p.y + 26}" text-anchor="middle" font-size="10.5"
+        fill="var(--muted)">${esc(e.entityType)}</text></g>`;
+  });
+  $("graph-svg").innerHTML =
+    `<svg class="graph" viewBox="0 0 ${W} ${H}" role="list"
+      aria-label="Knowledge graph: ${entities.length} entities, ${relations.length} relations (fixture)">
+      ${edges}${labels}${nodes}</svg>`;
+})();
+
+// entity cards + detail (all from the read_graph fixture)
+$("entity-cards").innerHTML = entities.map((e, i) =>
+  `<button class="entity" data-i="${i}" type="button">
+     <span class="etype" style="background:${typeColor(e.entityType)}">${esc(e.entityType)}</span>
+     <h3>${esc(e.name)}</h3>
+     <ul>${e.observations.map(o => `<li>${esc(o)}</li>`).join("")}</ul>
+   </button>`).join("");
+$("entity-name-list").innerHTML = entities.map(e => `<option value="${esc(e.name)}">`).join("");
+$("entity-cards").addEventListener("click", (ev) => {
+  const card = ev.target.closest(".entity"); if (!card) return;
+  const e = entities[+card.dataset.i];
+  const out = relations.filter(r => r.from === e.name);
+  const inc = relations.filter(r => r.to === e.name);
+  $("entity-detail").hidden = false;
+  $("entity-detail").innerHTML =
+    `<h3>${esc(e.name)} <span class="src">Fixture · read_graph</span></h3>
+     <p class="sub">type: ${esc(e.entityType)}</p>
+     <ul>${e.observations.map(o => `<li>${esc(o)}</li>`).join("")}</ul>
+     <div class="rels"><strong>Relations</strong>
+       <ul>${
+         out.map(r => `<li>${esc(r.from)} <span class="rel-type">${esc(r.relationType)}</span> ${esc(r.to)}</li>`)
+        .concat(inc.map(r => `<li>${esc(r.from)} <span class="rel-type">${esc(r.relationType)}</span> ${esc(r.to)}</li>`))
+        .join("") || "<li>none recorded</li>"
+       }</ul></div>`;
+  $("entity-detail").scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+
+/* ---------- search replay (search_nodes fixtures) ---------- */
+const SEARCH_FIXTURES = {}; // query (lowercased) -> fixture key
+for (const [key, fx] of Object.entries(FIXTURES)) {
+  const m = FIXTURES.manifest.entries.find(e => e.file === key + ".json");
+  if (m && m.params && m.params.name === "search_nodes" && m.params.arguments &&
+      typeof m.params.arguments.query === "string") {
+    SEARCH_FIXTURES[m.params.arguments.query.toLowerCase()] = key;
+  }
+}
+$("captured-queries").textContent =
+  Object.keys(SEARCH_FIXTURES).map(q => `"${q}"`).join(", ");
+$("captured-query-list").innerHTML =
+  Object.keys(SEARCH_FIXTURES).map(q => `<option value="${esc(q)}">`).join("");
+
+function renderGraphResult(fx, label) {
+  const p = payload(fx);
+  const ents = p.entities || [], rels = p.relations || [];
+  if (!ents.length && !rels.length) {
+    return `<div class="result-box"><span class="lamp fixture">● FIXTURE</span>
+      <strong> ${esc(label)}</strong>
+      <p class="sub" style="margin:6px 0 0">The server returned no matching entities and no relations.</p></div>`;
+  }
+  return `<div class="result-box"><span class="lamp fixture">● FIXTURE</span>
+    <strong> ${esc(label)}</strong>
+    <ul>${ents.map(e =>
+      `<li><strong>${esc(e.name)}</strong> <span class="sub" style="display:inline">(${esc(e.entityType)})</span>
+       <ul>${e.observations.map(o => `<li>${esc(o)}</li>`).join("")}</ul></li>`).join("")}
+    </ul>${rels.length ? `<p class="sub" style="margin:4px 0 0">Relations returned: ${
+      rels.map(r => `${esc(r.from)} <span class="rel-type">${esc(r.relationType)}</span> ${esc(r.to)}`).join(" · ")
+    }</p>` : ""}</div>`;
+}
+
+$("search-btn").addEventListener("click", () => {
+  const q = $("search-input").value.trim();
+  if (!q) { $("search-result").innerHTML =
+    `<div class="result-box"><span class="lamp notsent">● NOT SENT</span> Enter a query first.</div>`; return; }
+  const key = SEARCH_FIXTURES[q.toLowerCase()];
+  if (key) {
+    $("search-result").innerHTML =
+      renderGraphResult(FIXTURES[key], `search_nodes(query: "${q}") — captured response`);
+  } else {
+    $("search-result").innerHTML =
+      `<div class="result-box"><span class="lamp notsent">● NOT SENT</span>
+       <strong> No fixture captured for "${esc(q)}"</strong>
+       <p class="sub" style="margin:6px 0 0">This fixture-backed twin can only replay
+       captured calls. Running <span class="mono">search_nodes</span> with new
+       arguments requires a live server connection.</p></div>`;
+  }
+});
+
+// captured error call, rendered in the server's words
+$("error-btn").addEventListener("click", () => {
+  const fx = FIXTURES["error-search_nodes-missing-query"];
+  $("search-result").innerHTML =
+    `<div class="result-box err"><span class="lamp error">● ERROR (server)</span>
+     <strong> search_nodes called without a query — the server refused (isError: true):</strong>
+     <pre>${esc(fx.result.content[0].text)}</pre></div>`;
+});
+
+// captured open_nodes call
+{
+  const m = FIXTURES.manifest.entries.find(e => e.params && e.params.name === "open_nodes");
+  const names = m.params.arguments.names;
+  $("open-nodes-sub").innerHTML =
+    `Captured call: <span class="mono">open_nodes(names: ${esc(JSON.stringify(names))})</span>. ` +
+    `Opening other nodes requires a live server.`;
+  $("open-nodes-result").innerHTML =
+    renderGraphResult(FIXTURES["open_nodes-emily-chen"], `open_nodes — captured response`);
+}
+
+/* ---------- gated writes (confirm cards; fail-closed) ---------- */
+const toolsList = FIXTURES["tools-list"].result.tools;
+const toolByName = Object.fromEntries(toolsList.map(t => [t.name, t]));
+
+function buildParams(op) {
+  if (op === "create_entities") {
+    const name = $("e-name").value.trim();
+    if (!name) return { err: "Entity name is required." };
+    return { args: { entities: [{ name, entityType: $("e-type").value.trim() || "unspecified",
+      observations: $("e-obs").value.split("\n").map(s => s.trim()).filter(Boolean) }] } };
+  }
+  if (op === "create_relations") {
+    const from = $("r-from").value.trim(), to = $("r-to").value.trim(), rt = $("r-type").value.trim();
+    if (!from || !to || !rt) return { err: "From, to, and relation type are all required." };
+    return { args: { relations: [{ from, to, relationType: rt }] } };
+  }
+  if (op === "add_observations") {
+    const entityName = $("o-entity").value.trim();
+    const contents = $("o-contents").value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!entityName || !contents.length) return { err: "Entity name and at least one observation are required." };
+    return { args: { observations: [{ entityName, contents }] } };
+  }
+}
+
+let logCount = 0;
+function logCall(op, args, lampClass, lampText, msg) {
+  if (logCount === 0) $("log-empty").remove();
+  logCount++;
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="lamp ${lampClass}">● ${esc(lampText)}</span>
+    <span class="mono">${esc(op)}</span> — ${esc(msg)}
+    <div class="when">${new Date().toLocaleTimeString()} · params: <span class="mono">${esc(JSON.stringify(args))}</span></div>`;
+  $("call-log").prepend(li);
+}
+
+document.querySelectorAll("button[data-op]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const op = btn.dataset.op;
+    const built = buildParams(op);
+    const host = $("confirm-host");
+    if (built.err) {
+      host.innerHTML = `<div class="result-box err"><span class="lamp error">● INCOMPLETE</span> ${esc(built.err)}</div>`;
+      host.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const tool = toolByName[op];
+    const ann = tool.annotations || {};
+    host.innerHTML = `
+      <div class="confirm" role="alertdialog" aria-labelledby="confirm-title">
+        <h3 id="confirm-title">Confirm: ${esc(op)}</h3>
+        <p class="note">Server description: “${esc(tool.description)}”.<br>
+          This op <strong>mutates the knowledge graph</strong>
+          (annotations verbatim: readOnlyHint: ${String(ann.readOnlyHint)},
+          destructiveHint: ${String(ann.destructiveHint)},
+          idempotentHint: ${String(ann.idempotentHint)}).
+          If sent, it will be <strong>recorded</strong> in the server's memory file.</p>
+        <pre>${esc(JSON.stringify({ method: "tools/call",
+          params: { name: op, arguments: built.args } }, null, 2))}</pre>
+        <div class="actions">
+          <button class="ghost" type="button" id="confirm-cancel">Cancel — send nothing</button>
+          <button class="primary" type="button" id="confirm-send">Confirm — send ${esc(op)}</button>
+        </div>
+      </div>`;
+    host.scrollIntoView({ block: "nearest" });
+    $("confirm-cancel").addEventListener("click", () => { host.innerHTML = ""; });
+    $("confirm-send").addEventListener("click", () => {
+      // Fixture-backed build: there is no live transport. The call is not
+      // dispatched and must never render as success.
+      host.innerHTML = `<div class="result-box err">
+        <span class="lamp notsent">● NOT SENT</span>
+        <strong> ${esc(op)} was not dispatched.</strong>
+        <p class="sub" style="margin:6px 0 0">This twin is fixture-backed with no live
+        server connection; write calls cannot be sent. The graph view is unchanged.</p></div>`;
+      logCall(op, built.args, "notsent", "NOT SENT",
+        "confirmed, but no live server — call not dispatched; graph unchanged");
+    });
+  });
+});
+
+/* ---------- surface & scope table (tools/list fixture) ---------- */
+const SCOPE = {
+  read_graph:      { in: true,  how: "“Your graph” view + entity detail" },
+  search_nodes:    { in: true,  how: "Search (captured-query replay + captured error)" },
+  open_nodes:      { in: true,  how: "Open nodes (captured call replay)" },
+  create_entities: { in: true,  how: "“Add an entity” form, behind confirm card" },
+  create_relations:{ in: true,  how: "“Add a relation” form, behind confirm card" },
+  add_observations:{ in: true,  how: "“Add observations” form, behind confirm card" },
+  delete_entities:    { in: false, why: "destructiveHint: true; deletion is outside this twin's requested scope (“add to it safely”)" },
+  delete_observations:{ in: false, why: "destructiveHint: true; deletion is outside this twin's requested scope" },
+  delete_relations:   { in: false, why: "destructiveHint: true; deletion is outside this twin's requested scope" },
+};
+$("surface-table").innerHTML =
+  `<tr><th>Tool</th><th>Annotations (verbatim)</th><th>Scope</th></tr>` +
+  toolsList.map(t => {
+    const a = t.annotations || {}, s = SCOPE[t.name] || { in: false, why: "not mapped" };
+    return `<tr><td><code>${esc(t.name)}</code><br><span class="sub" style="margin:0">${esc(t.description)}</span></td>
+      <td class="mono">readOnly: ${String(a.readOnlyHint)}<br>destructive: ${String(a.destructiveHint)}<br>idempotent: ${String(a.idempotentHint)}</td>
+      <td>${s.in ? `<span class="scope-in">in scope</span><br><span class="sub" style="margin:0">${esc(s.how)}</span>`
+                 : `<span class="scope-out">excluded</span><br><span class="sub" style="margin:0">${esc(s.why)}</span>`}</td></tr>`;
+  }).join("");
+</script>
+</body>
+</html>

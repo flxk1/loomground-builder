@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Twin — 3D control room</title>
+<style>
+/* twin-sheet/1 — default binding (light + dark), copied verbatim at
+   authoring time from skill/sheet/binding-default.css. The spatial genre
+   needs no special branding, so the neutral binding is used directly —
+   same choice examples/patch/twin.html and examples/daw/twin.html made. */
+:root {
+  --twin-bg: #f7f7f5;
+  --twin-panel: #ffffff;
+  --twin-panel-2: #eef0ee;
+  --twin-line: #d6d9d6;
+  --twin-txt: #33383a;
+  --twin-txt-dim: #6b7377;
+  --twin-txt-bright: #16191a;
+  --twin-accent: #2f6f5f;
+  --twin-radius: 5px;
+  --twin-radius-lg: 9px;
+  --twin-font-display: system-ui, "Segoe UI", sans-serif;
+  --twin-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --twin-ok: #2e7d5b;
+  --twin-warn: #a8720a;
+  --twin-stop: #b3362c;
+  --twin-info: #2f5f8f;
+  --twin-emph: #a0522d;
+  --twin-ord-0: #5b7a99;
+  --twin-ord-1: #4f8a7a;
+  --twin-ord-2: #a8720a;
+  --twin-ord-3: #c26a2e;
+  --twin-ord-4: #b3362c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --twin-bg: #16181b;
+    --twin-panel: #1d2024;
+    --twin-panel-2: #23272c;
+    --twin-line: #383e45;
+    --twin-txt: #ccd2d6;
+    --twin-txt-dim: #8b949c;
+    --twin-txt-bright: #f0f2f3;
+    --twin-accent: #57b493;
+    --twin-ok: #5aa886;
+    --twin-warn: #d9a13d;
+    --twin-stop: #e2554a;
+    --twin-info: #6fa8d4;
+    --twin-emph: #df8b46;
+    --twin-ord-0: #5b7a99;
+    --twin-ord-1: #5f9088;
+    --twin-ord-2: #c8a23f;
+    --twin-ord-3: #df8b46;
+    --twin-ord-4: #cf463c;
+  }
+}
+</style>
+<style>
+/* twin-sheet/1 — component sheet for generated mental twins.
+   Components reference ONLY the neutral --twin-* interface (see spec §5).
+   A binding file (binding-default.css, or a per-target binding shipped with
+   the target's own pack) supplies the values. Type scale and spacing scale
+   are fixed here and not themeable. */
+
+/* ---------- scales (fixed layout contract) ---------- */
+.twin {
+  /* type scale — six steps, one role each */
+  --ts-micro: 0.625rem;   /* timestamps, source chips */
+  --ts-label: 0.6875rem;  /* control labels, table headers, lamp captions */
+  --ts-body:  0.8125rem;  /* primary reading text */
+  --ts-emph:  0.9375rem;  /* shelf titles, section headers */
+  --ts-h2:    1.125rem;   /* op-surface / card titles */
+  --ts-h1:    1.375rem;   /* twin header, once per page */
+  /* spacing scale — 4px base, seven steps */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  font-family: var(--twin-font-mono);
+  font-size: var(--ts-body);
+  color: var(--twin-txt);
+  background: var(--twin-bg);
+  line-height: 1.5;
+}
+/* density: which half of the scale internal gaps read from */
+.twin[data-density="compact"]     { --g-row: var(--sp-1); --g-block: var(--sp-2); --g-sect: var(--sp-3); --p-card: var(--sp-3); }
+.twin[data-density="comfortable"] { --g-row: var(--sp-2); --g-block: var(--sp-3); --g-sect: var(--sp-5); --p-card: var(--sp-4); }
+
+.twin * { box-sizing: border-box; }
+.twin h1, .twin h2, .twin h3 { font-family: var(--twin-font-display); margin: 0; color: var(--twin-txt-bright); }
+.twin h1 { font-size: var(--ts-h1); font-weight: 600; }
+.twin h2 { font-size: var(--ts-h2); font-weight: 600; }
+.twin h3 { font-size: var(--ts-emph); font-weight: 600; }
+
+/* ---------- 2.9 header / pin ---------- */
+.tw-header { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--twin-line); background: var(--twin-panel); }
+.tw-header .tw-pin { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-badge { font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius); padding: 1px var(--sp-2);
+  color: var(--twin-txt-dim); }
+.tw-badge.live { color: var(--twin-ok); border-color: var(--twin-ok); }
+.tw-badge.fixture { color: var(--twin-warn); border-color: var(--twin-warn); }
+.tw-stamp { display: none; font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--twin-stop); border: 1px dashed var(--twin-stop); border-radius: var(--twin-radius);
+  padding: 1px var(--sp-2); }
+.tw-stamp.on { display: inline-block; }   /* design-unverified: visible only when stamped */
+
+/* ---------- 2.5 lamps ---------- */
+.tw-lamp { display: inline-flex; align-items: center; gap: var(--sp-1);
+  font-size: var(--ts-label); white-space: nowrap; }
+.tw-lamp::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--twin-line); }
+.tw-lamp.ok::before   { background: var(--twin-ok); }
+.tw-lamp.warn::before { background: var(--twin-warn); }
+.tw-lamp.stop::before { background: var(--twin-stop); }
+.tw-lamp.info::before { background: var(--twin-info); }
+.tw-lamp.emph::before { background: var(--twin-emph); }
+/* stepped ordinal (e.g. autonomy grades) — discrete steps, never a fill */
+.tw-steps { display: inline-flex; gap: 3px; align-items: center; }
+.tw-steps i { width: 12px; height: 5px; border-radius: 2px; background: var(--twin-line); font-style: normal; }
+.tw-steps i.on-0 { background: var(--twin-ord-0); } .tw-steps i.on-1 { background: var(--twin-ord-1); }
+.tw-steps i.on-2 { background: var(--twin-ord-2); } .tw-steps i.on-3 { background: var(--twin-ord-3); }
+.tw-steps i.on-4 { background: var(--twin-ord-4); }
+.tw-steps .tw-steps-label { font-size: var(--ts-label); margin-left: var(--sp-1); }
+
+/* ---------- 2.6 card ---------- */
+.tw-card { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card); }
+.tw-card > h3 { margin-bottom: var(--g-block); }
+.tw-grid { display: grid; gap: var(--g-sect); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+/* ---------- 2.1 rack shelf + 2.2 op row ---------- */
+.tw-shelf { border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); overflow: hidden; }
+.tw-shelf > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline;
+  gap: var(--sp-2); padding: var(--g-block) var(--sp-3); font-family: var(--twin-font-display);
+  font-size: var(--ts-emph); font-weight: 600; color: var(--twin-txt-bright); }
+.tw-shelf > summary::-webkit-details-marker { display: none; }
+.tw-shelf > summary::before { content: "▸"; font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-shelf[open] > summary::before { content: "▾"; }
+.tw-shelf > summary .tw-count { font-size: var(--ts-label); font-weight: 400; color: var(--twin-txt-dim); }
+.tw-oprow { display: flex; align-items: baseline; gap: var(--sp-2); width: 100%;
+  padding: var(--g-row) var(--sp-3); border: 0; border-top: 1px solid var(--twin-line);
+  background: transparent; color: var(--twin-txt); font: inherit; text-align: left; cursor: pointer; }
+.tw-oprow:hover, .tw-oprow:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-oprow .tw-opname { font-weight: 600; white-space: nowrap; }
+.tw-oprow .tw-opnote { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+/* ---------- 2.3 op surface ---------- */
+.tw-opsurface { display: flex; flex-direction: column; gap: var(--g-block); }
+.tw-params { display: grid; gap: var(--g-row); }
+.tw-field { display: grid; gap: 2px; }
+.tw-field label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-field input, .tw-field textarea, .tw-palette input {
+  font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); width: 100%; }
+.tw-field input:focus-visible, .tw-field textarea:focus-visible, .tw-palette input:focus-visible {
+  outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.tw-btn { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.tw-btn:hover { border-color: var(--twin-accent); }
+.tw-btn.primary { border-color: var(--twin-accent); color: var(--twin-txt-bright); }
+.tw-btn.danger { border-color: var(--twin-stop); }
+.tw-btn:disabled { opacity: .45; cursor: default; }
+.tw-response { background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-2) var(--sp-3);
+  font-size: var(--ts-body); white-space: pre-wrap; word-break: break-word;
+  max-height: 40vh; overflow: auto; margin: 0; }
+.tw-response.error { border-color: var(--twin-stop); }
+.tw-src { font-size: var(--ts-micro); color: var(--twin-txt-dim); text-transform: uppercase;
+  letter-spacing: .06em; }
+
+/* ---------- 2.10 confirm dialog ---------- */
+.tw-dialog { border: 1px solid var(--twin-warn); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); padding: var(--p-card); display: flex; flex-direction: column;
+  gap: var(--g-block); max-width: 560px; }
+.tw-dialog.destructive { border-color: var(--twin-stop); }
+.tw-dialog .tw-consequence { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-dialog .tw-composed { max-height: 30vh; overflow: auto; }
+.tw-dialog .tw-actions { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+
+/* ---------- 2.7 table ---------- */
+.tw-table { width: 100%; border-collapse: collapse; font-size: var(--ts-body); }
+.tw-table th { font-size: var(--ts-label); text-align: left; color: var(--twin-txt-dim);
+  font-weight: 600; padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line); }
+.tw-table td { padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line);
+  vertical-align: baseline; }
+
+/* ---------- 2.8 log / stream ---------- */
+.tw-log { display: flex; flex-direction: column-reverse; gap: var(--g-row);
+  max-height: 32vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.tw-log li { display: flex; gap: var(--sp-2); align-items: baseline;
+  font-size: var(--ts-label); border-top: 1px solid var(--twin-line); padding-top: var(--g-row); }
+.tw-log time { font-size: var(--ts-micro); color: var(--twin-txt-dim); white-space: nowrap; }
+
+/* ---------- 2.4 palette ---------- */
+.tw-palette { position: relative; }
+.tw-palette-list { position: absolute; z-index: 30; left: 0; right: 0; margin: 2px 0 0;
+  padding: var(--sp-1); list-style: none; background: var(--twin-panel);
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  max-height: 40vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.tw-palette-list li { border-radius: var(--twin-radius); }
+.tw-palette-list button { display: flex; gap: var(--sp-2); align-items: baseline; width: 100%;
+  padding: var(--g-row) var(--sp-2); border: 0; background: transparent; color: var(--twin-txt);
+  font: inherit; text-align: left; cursor: pointer; border-radius: var(--twin-radius); }
+.tw-palette-list button:hover, .tw-palette-list button:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-palette-list .tw-facet { font-size: var(--ts-micro); color: var(--twin-txt-dim);
+  margin-left: auto; white-space: nowrap; }
+
+/* ---------- layout helpers ---------- */
+.tw-page { max-width: 1180px; margin: 0 auto; padding: var(--g-sect) var(--sp-5) var(--sp-7);
+  display: flex; flex-direction: column; gap: var(--g-sect); }
+.tw-row { display: flex; gap: var(--g-block); align-items: center; flex-wrap: wrap; }
+.tw-spacer { flex: 1; }
+</style>
+<style>
+/* spatial-kit/1 — the spatial (walkable 3D control room) genre substrate,
+   copied verbatim at authoring time from skill/genres/spatial/spatial-kit.css.
+   Its own small vocabulary (room, floor, station, door, link, cord) built
+   ONLY on top of the sheet's tokens/scales above — no new scale, no
+   parallel CSS (skill/SKILL.md step 4's composition discipline). 3D via CSS
+   transforms only — no Three.js, no WebGL, no <canvas>; see the D6 note in
+   the "Room — walkable 3D" section below. */
+.spatial-room { position: relative; margin: 0 auto; padding: var(--sp-6) 0;
+  display: flex; justify-content: center; }
+.spatial-floor { position: relative; width: 560px; max-width: 100%; height: 420px; }
+
+.twin[data-degrade="3d"] .spatial-room,
+.twin:not([data-degrade]) .spatial-room {
+  perspective: 1100px; perspective-origin: 50% 20%;
+}
+.twin[data-degrade="3d"] .spatial-floor,
+.twin:not([data-degrade]) .spatial-floor {
+  transform-style: preserve-3d;
+  transform: rotateX(55deg) rotateZ(-6deg);
+}
+.twin[data-degrade="3d"] .spatial-station,
+.twin[data-degrade="3d"] .spatial-door,
+.twin[data-degrade="3d"] .spatial-cord,
+.twin:not([data-degrade]) .spatial-station,
+.twin:not([data-degrade]) .spatial-door,
+.twin:not([data-degrade]) .spatial-cord {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate3d(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)), var(--sz, 0px));
+  transform-style: preserve-3d;
+}
+.twin[data-degrade="3d"] .spatial-cord,
+.twin:not([data-degrade]) .spatial-cord {
+  width: var(--cord-len, 0px); height: 4px; transform-origin: 0 50%;
+  transform: translate3d(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)), var(--sz, 0px))
+    rotate(var(--cord-rot, 0deg));
+}
+
+.twin[data-degrade="2d"] .spatial-room { perspective: none; padding: var(--g-sect) 0; }
+.twin[data-degrade="2d"] .spatial-floor {
+  height: auto; width: 100%;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--g-sect);
+}
+.twin[data-degrade="2d"] .spatial-station,
+.twin[data-degrade="2d"] .spatial-door {
+  position: static; transform: none; left: auto; top: auto;
+}
+.twin[data-degrade="2d"] .spatial-cord { display: none; }
+
+.twin[data-degrade="text"] .spatial-room { perspective: none; padding: var(--g-block) 0; }
+.twin[data-degrade="text"] .spatial-floor {
+  height: auto; width: 100%; display: flex; flex-direction: column; gap: var(--g-block);
+}
+.twin[data-degrade="text"] .spatial-station,
+.twin[data-degrade="text"] .spatial-door {
+  position: static; transform: none; left: auto; top: auto;
+  flex-direction: row; align-items: center; gap: var(--sp-3);
+}
+.twin[data-degrade="text"] .spatial-cord,
+.twin[data-degrade="text"] .station-face,
+.twin[data-degrade="text"] .door-face { display: none; }
+
+.spatial-station { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  width: 150px; padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); box-shadow: 0 6px 14px rgba(0,0,0,.12); }
+.station-face { width: 100%; height: 28px; border-radius: var(--twin-radius);
+  background: linear-gradient(135deg, var(--twin-accent), var(--twin-panel)); border: 1px solid var(--twin-line); }
+.station-label { font-size: var(--ts-label); color: var(--twin-txt-dim); text-align: center; }
+.station-value-row { display: flex; align-items: center; gap: var(--sp-2); }
+.station-value { width: 5.5em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.station-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.station-unit { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.station-commit { width: 100%; }
+.station-slot { width: 100%; }
+
+.spatial-door { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  width: 120px; padding: var(--sp-2) var(--sp-3); border: 1px dashed var(--twin-line);
+  border-radius: var(--twin-radius-lg); background: var(--twin-panel-2); }
+.door-face { width: 100%; height: 40px; border-radius: var(--twin-radius);
+  background: repeating-linear-gradient(45deg, var(--twin-panel), var(--twin-panel) 6px, var(--twin-line) 6px, var(--twin-line) 8px);
+  border: 1px solid var(--twin-line); }
+.door-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.door-state { display: flex; justify-content: center; }
+.door-controls { display: flex; gap: var(--sp-1); width: 100%; }
+.door-controls > div { flex: 1; }
+.door-commit { width: 100%; }
+.door-slot { width: 100%; }
+
+.spatial-cords { display: flex; flex-direction: column; gap: var(--g-block); }
+.spatial-link { display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.spatial-link.spatial-link-new { border-style: dashed; }
+.link-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.link-fields { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.link-field { flex: 1; min-width: 8em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); }
+.link-field:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.link-arrow { color: var(--twin-accent); font-weight: 600; }
+.link-assignment { font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt); flex: 1; }
+.link-slot { width: 100%; }
+.spatial-link-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.spatial-cord { background: linear-gradient(90deg, var(--twin-accent), transparent); border-radius: 2px; pointer-events: none; }
+
+.spatial-state-table { width: 100%; }
+.spatial-rev { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+
+.spatial-degrade-switch { display: flex; gap: var(--sp-2); align-items: center; }
+.spatial-degrade-switch button { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.spatial-degrade-switch button[aria-pressed="true"] { border-color: var(--twin-accent); color: var(--twin-txt-bright); }
+</style>
+</head>
+<body class="twin" data-density="comfortable" data-degrade="3d" style="margin:0">
+<div id="hdr"></div>
+<main class="tw-page">
+
+  <section class="tw-card">
+    <h3>Find any function</h3>
+    <span class="tw-src">tier-0 palette · every catalogued op</span>
+    <div id="palette"></div>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Room — walkable 3D</h3>
+    <p class="tw-src">spatial-kit · station dial (data-gesture="dial") · station.setLevel × 3 stations —
+      door step (data-gesture="step") · door.open/door.close × 2 doors —
+      link (data-gesture="link") · link.connect (new) and link.disconnect (per existing link, destructive)</p>
+    <p class="tw-src">D6 — lossless degrade: the room is CSS 3D transforms over real DOM controls, never
+      Three.js/WebGL/canvas. Switching below changes ONLY presentation (spatial-kit.css, keyed off
+      data-degrade on this page's root) — every [data-op] control below exists, unchanged, in all three
+      modes. The live gate (testing/live/live-gate.mjs) never touches CSS at all, so driving this twin
+      through jsdom — as the gate does — already IS driving the "text" layer.</p>
+    <div class="spatial-degrade-switch" role="group" aria-label="Degrade presentation (view only — not a catalogued op)">
+      <span class="tw-src">view:</span>
+      <button type="button" id="deg-3d" aria-pressed="true">3D</button>
+      <button type="button" id="deg-2d" aria-pressed="false">2D</button>
+      <button type="button" id="deg-text" aria-pressed="false">Text</button>
+    </div>
+    <div id="room"></div>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Adjacency links</h3>
+    <p class="tw-src">spatial-kit · link (data-gesture="link") · the same link.connect/link.disconnect
+      controls, rendered here as a plain textual list — the shape every degrade mode keeps</p>
+    <div id="links" class="spatial-cords"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>State — real, out-of-band</h3>
+    <span class="tw-src">live · room.state · every station's level, every door's open/closed state, and
+      every adjacency link, re-read after every dispatch — never computed locally</span>
+    <p class="spatial-rev" id="rev"></p>
+    <table class="tw-table spatial-state-table">
+      <thead><tr><th>station</th><th>level</th></tr></thead>
+      <tbody id="stations-body"></tbody>
+    </table>
+    <table class="tw-table spatial-state-table" style="margin-top:var(--sp-3)">
+      <thead><tr><th>door</th><th>state</th></tr></thead>
+      <tbody id="doors-body"></tbody>
+    </table>
+    <table class="tw-table spatial-state-table" style="margin-top:var(--sp-3)">
+      <thead><tr><th>a</th><th>b</th></tr></thead>
+      <tbody id="links-body"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Operations</h3>
+    <p class="tw-src">tier-2 rack — the one read op (room.state) exposed the same
+      way every other twin's reads are: a rack row opening an op surface
+      (twin-sheet.js, unchanged) — the room/links above are the tier-1
+      designed view onto the five write ops</p>
+    <div id="rack" style="display:flex;flex-direction:column;gap:var(--g-block)"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Op surface</h3>
+    <span class="tw-src">opened from the rack row or the palette</span>
+    <div id="surface"><p class="tw-src">no function open</p></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Call log</h3>
+    <div id="log"></div>
+  </section>
+
+</main>
+
+<script>
+/* twin-sheet/1 — DOM construction helpers for the component sheet, copied
+   verbatim at authoring time from skill/sheet/twin-sheet.js. */
+(function (global) {
+  "use strict";
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) {
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* 2.5 verdict/status lamp. word: verbatim vocabulary string; role: one of
+     ok|warn|stop|info|emph, from the surface pack's vocabulary→role map. */
+  function lamp(word, role) {
+    return el("span", { class: "tw-lamp " + (role || ""), role: "status",
+      "aria-label": word }, [word]);
+  }
+
+  /* 2.5 mutation lamp from a function descriptor (fail-closed). */
+  function mutLamp(fn) {
+    if (fn.mutating === false) return lamp("read", "ok");
+    if (fn.destructive) return lamp("destructive", "stop");
+    return lamp("mutates", "warn");
+  }
+
+  /* 2.5 stepped ordinal, e.g. autonomy grades. n steps, active index, label. */
+  function steps(n, active, label) {
+    var wrap = el("span", { class: "tw-steps", role: "img", "aria-label": label });
+    for (var i = 0; i < n; i++)
+      wrap.appendChild(el("i", { class: i <= active ? "on-" + i : "" }));
+    wrap.appendChild(el("span", { class: "tw-steps-label", text: label }));
+    return wrap;
+  }
+
+  /* 2.9 header/pin. stamped=true shows the design-unverified stamp. */
+  function header(opts) {
+    return el("header", { class: "tw-header" }, [
+      el("h1", { text: opts.title }),
+      el("span", { class: "tw-pin", text: opts.pin || "" }),
+      el("span", { class: "tw-badge " + (opts.live ? "live" : "fixture"),
+        text: opts.live ? "live" : "fixture-backed" }),
+      el("span", { class: "tw-stamp" + (opts.stamped ? " on" : ""),
+        text: "design-unverified" })
+    ]);
+  }
+
+  /* 2.3 confirm flow. Two-phase: compose → confirm card → dispatch/cancel.
+     opts.typedName: require typing fn.name to enable confirm (current rule:
+     recommended for destructive; pending-decider whether required). */
+  function confirmGate(fn, params, opts, onConfirm, onCancel) {
+    var composed = JSON.stringify(params, null, 2);
+    var okBtn = el("button", { class: "tw-btn " + (fn.destructive ? "danger" : "primary"),
+      text: "Confirm" });
+    var dialog = el("div", { class: "tw-dialog" + (fn.destructive ? " destructive" : ""),
+      role: "alertdialog", "aria-label": "Confirm " + fn.name });
+    dialog.appendChild(el("h3", { text: "Confirm: " + fn.name }));
+    dialog.appendChild(el("p", { class: "tw-consequence",
+      text: fn.consequence || "This call is a recorded action on the target." }));
+    dialog.appendChild(el("pre", { class: "tw-response tw-composed", text: composed }));
+    if (opts && opts.typedName) {
+      okBtn.disabled = true;
+      var gateField = el("div", { class: "tw-field" }, [
+        el("label", { text: "Type the function name to enable confirm" }),
+        el("input", { type: "text", oninput: function (e) {
+          okBtn.disabled = e.target.value !== fn.name;
+        } })
+      ]);
+      dialog.appendChild(gateField);
+    }
+    okBtn.addEventListener("click", function () { onConfirm(params, dialog); });
+    dialog.appendChild(el("div", { class: "tw-actions" }, [
+      el("button", { class: "tw-btn", text: "Cancel",
+        onclick: function () { onCancel(dialog); } }),
+      okBtn
+    ]));
+    return dialog;
+  }
+
+  /* 2.3 op surface for one function descriptor:
+     { name, note, facade, params: [names], mutating, destructive,
+       consequence } — dispatch(fn, params) => Promise<{ok, body, error}>.
+     Renders responses verbatim; a failed call renders as .error. Each
+     parameter input carries data-param="pname" — the Control grammar's
+     param hook (see opRow below and SKILL.md's "Control grammar" section) —
+     so the gate can fill it by the catalogued param name, not by scanning
+     field-label text. */
+  function opSurface(fn, opts) {
+    var root = el("section", { class: "tw-opsurface",
+      "aria-label": fn.name });
+    root.appendChild(el("h2", { text: fn.name }));
+    if (fn.note) root.appendChild(el("p", { class: "tw-src", text: fn.note }));
+    var form = el("div", { class: "tw-params" });
+    var inputs = {};
+    (fn.params || []).forEach(function (p) {
+      var input = el("input", { type: "text", "aria-label": p, "data-param": p });
+      inputs[p] = input;
+      form.appendChild(el("div", { class: "tw-field" }, [
+        el("label", { text: p }), input]));
+    });
+    root.appendChild(form);
+    var slot = el("div");
+    var runBtn = el("button", { class: "tw-btn primary",
+      text: fn.mutating === false ? "Run" : "Compose…" });
+    function renderResponse(res) {
+      var pre = el("pre", { class: "tw-response" + (res.ok ? "" : " error"),
+        text: res.body });
+      slot.replaceChildren(el("span", { class: "tw-src",
+        text: res.ok ? "response · verbatim" : "refused · verbatim" }), pre);
+    }
+    runBtn.addEventListener("click", function () {
+      var params = {};
+      Object.keys(inputs).forEach(function (p) {
+        var v = inputs[p].value;
+        if (v !== "") { try { params[p] = JSON.parse(v); } catch (_) { params[p] = v; } }
+      });
+      if (fn.mutating === false) {
+        opts.dispatch(fn, params).then(renderResponse);
+        return;
+      }
+      var dialog = confirmGate(fn, params,
+        { typedName: !!fn.destructive && opts.typedName !== false },
+        function (p, d) {
+          d.remove();
+          opts.dispatch(fn, p).then(function (res) {
+            renderResponse(res);
+            if (opts.log) opts.log(fn, p, res);
+          });
+        },
+        function (d) { d.remove(); if (opts.onCancel) opts.onCancel(fn); });
+      slot.replaceChildren(dialog);
+    });
+    root.appendChild(el("div", { class: "tw-row" }, [runBtn]));
+    root.appendChild(slot);
+    return root;
+  }
+
+  /* 2.2 op row. Carries the Control grammar's two control-level hooks:
+     data-op="facade.op" and data-gesture="activate". */
+  function opRow(fn, onOpen) {
+    return el("button", { class: "tw-oprow", "data-op": fn.name,
+      "data-gesture": "activate", onclick: function () { onOpen(fn); } }, [
+      el("span", { class: "tw-opname", text: fn.name }),
+      el("span", { class: "tw-opnote", text: fn.note || "" }),
+      mutLamp(fn)
+    ]);
+  }
+
+  /* 2.1 rack shelf: one facade, its functions. */
+  function shelf(facade, fns, onOpen, open) {
+    var d = el("details", { class: "tw-shelf" });
+    if (open) d.setAttribute("open", "");
+    d.appendChild(el("summary", {}, [
+      facade, el("span", { class: "tw-count", text: fns.length + " ops" })]));
+    fns.forEach(function (fn) { d.appendChild(opRow(fn, onOpen)); });
+    return d;
+  }
+
+  /* 2.4 tier-0 palette over the whole catalogue. */
+  function palette(catalogue, onOpen) {
+    var wrap = el("div", { class: "tw-palette" });
+    var list = el("ul", { class: "tw-palette-list", hidden: "" });
+    var input = el("input", { type: "search",
+      placeholder: "Find any function — name, note, facade",
+      "aria-label": "Search all functions" });
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      list.replaceChildren();
+      if (!q) { list.hidden = true; return; }
+      var hits = catalogue.filter(function (fn) {
+        return (fn.name + " " + (fn.note || "") + " " + (fn.facade || ""))
+          .toLowerCase().indexOf(q) !== -1;
+      }).slice(0, 40);
+      hits.forEach(function (fn) {
+        list.appendChild(el("li", {}, [el("button", {
+          onclick: function () { list.hidden = true; input.value = ""; onOpen(fn); } }, [
+          el("span", { class: "tw-opname", text: fn.name }),
+          el("span", { class: "tw-opnote", text: fn.note || "" }),
+          el("span", { class: "tw-facet", text: fn.facade || "" })])]));
+      });
+      list.hidden = hits.length === 0;
+    });
+    wrap.appendChild(input); wrap.appendChild(list);
+    return wrap;
+  }
+
+  /* 2.8 call log */
+  function logList() { return el("ul", { class: "tw-log", "aria-label": "Call log" }); }
+  function logEntry(list, fn, params, res) {
+    list.appendChild(el("li", {}, [
+      el("time", { text: new Date().toISOString() }),
+      el("span", { class: "tw-opname", text: fn.name }),
+      lamp(res ? (res.ok ? "answered" : "refused") : "NOT SENT", res ? (res.ok ? "ok" : "stop") : "stop"),
+      el("span", { class: "tw-opnote", text: JSON.stringify(params) })
+    ]));
+  }
+
+  global.TwinSheet = { el: el, lamp: lamp, mutLamp: mutLamp, steps: steps,
+    header: header, opSurface: opSurface, opRow: opRow, shelf: shelf,
+    palette: palette, confirmGate: confirmGate, logList: logList, logEntry: logEntry };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>
+/* spatial-kit/1 — DOM construction helpers for the spatial genre substrate,
+   copied verbatim at authoring time from
+   skill/genres/spatial/spatial-kit.js. */
+(function (global) {
+  "use strict";
+
+  var T = null;
+
+  function init(TwinSheet) { T = TwinSheet; }
+
+  function numOrRaw(v) {
+    if (v === "") return v;
+    var n = Number(v);
+    return Number.isFinite(n) ? n : v;
+  }
+
+  function renderInline(slot, res) {
+    var pre = T.el("pre", { class: "tw-response" + (res.ok ? "" : " error"), text: res.body });
+    slot.replaceChildren(T.el("span", { class: "tw-src",
+      text: res.ok ? "response · verbatim" : "refused · verbatim" }), pre);
+  }
+
+  function fireControl(fn, params, slot, opts) {
+    var dialog = T.confirmGate(fn, params, { typedName: !!fn.destructive }, function (p, d) {
+      d.remove();
+      opts.dispatch(fn, p).then(function (res) {
+        renderInline(slot, res);
+        if (opts.log) opts.log(fn, p, res);
+      });
+    }, function (d) { d.remove(); if (opts.onCancel) opts.onCancel(fn); });
+    slot.replaceChildren(dialog);
+  }
+
+  function posStyle(p) {
+    return "--sx:" + (p.x || 0) + "px; --sy:" + (p.y || 0) + "px; --sz:" + (p.z || 0) + "px;";
+  }
+
+  function mountStation(spec, opts) {
+    var fn = spec.fn;
+    var wrap = T.el("div", { class: "spatial-station", "data-control-group": "",
+      style: posStyle(spec.pos || {}) });
+    wrap.appendChild(T.el("div", { class: "station-face", "aria-hidden": "true" }));
+    wrap.appendChild(T.el("div", { class: "station-label", text: spec.label || spec.station }));
+    var stationField = T.el("input", { type: "hidden", "data-param": "station", value: spec.station });
+    wrap.appendChild(stationField);
+    var valueInput = T.el("input", { type: "number", class: "station-value",
+      "data-param": "value", value: String(spec.initial), step: spec.step || "1",
+      "aria-label": (spec.label || spec.station) + " level" });
+    wrap.appendChild(T.el("div", { class: "station-value-row" }, [
+      valueInput, T.el("span", { class: "station-unit", text: spec.unit || "" })]));
+    var slot = T.el("div", { class: "station-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn primary station-commit",
+      "data-op": fn.name, "data-gesture": "dial", text: "Adjust" });
+    commit.addEventListener("click", function () {
+      var params = { station: stationField.value, value: numOrRaw(valueInput.value) };
+      fireControl(fn, params, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountDoor(spec, opts) {
+    var doorField1 = T.el("input", { type: "hidden", "data-param": "door", value: spec.door });
+    var doorField2 = T.el("input", { type: "hidden", "data-param": "door", value: spec.door });
+    var wrap = T.el("div", { class: "spatial-door", "data-control-group": "",
+      style: posStyle(spec.pos || {}) });
+    wrap.appendChild(T.el("div", { class: "door-face", "aria-hidden": "true" }));
+    wrap.appendChild(T.el("div", { class: "door-label", text: spec.label || spec.door }));
+    wrap.appendChild(T.el("div", { class: "door-state" }, [
+      T.lamp(spec.open ? "open" : "closed", spec.open ? "ok" : "warn")]));
+    var slot = T.el("div", { class: "door-slot" });
+    var openGroup = T.el("div", { "data-control-group": "" }, [doorField1]);
+    var openCommit = T.el("button", { type: "button", class: "tw-btn door-commit",
+      "data-op": spec.openFn.name, "data-gesture": "step", text: "Open" });
+    openCommit.addEventListener("click", function () {
+      fireControl(spec.openFn, { door: doorField1.value }, slot, opts);
+    });
+    openGroup.appendChild(openCommit);
+    var closeGroup = T.el("div", { "data-control-group": "" }, [doorField2]);
+    var closeCommit = T.el("button", { type: "button", class: "tw-btn door-commit",
+      "data-op": spec.closeFn.name, "data-gesture": "step", text: "Close" });
+    closeCommit.addEventListener("click", function () {
+      fireControl(spec.closeFn, { door: doorField2.value }, slot, opts);
+    });
+    closeGroup.appendChild(closeCommit);
+    wrap.appendChild(T.el("div", { class: "door-controls" }, [openGroup, closeGroup]));
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountLinkNew(fn, opts) {
+    var wrap = T.el("div", { class: "spatial-link spatial-link-new", "data-control-group": "" });
+    wrap.appendChild(T.el("div", { class: "link-label", text: "New adjacency link" }));
+    var aInput = T.el("input", { type: "text", class: "link-field", "data-param": "a",
+      placeholder: "a — e.g. comms", "aria-label": "station a" });
+    var bInput = T.el("input", { type: "text", class: "link-field", "data-param": "b",
+      placeholder: "b — e.g. power", "aria-label": "station b" });
+    wrap.appendChild(T.el("div", { class: "link-fields" }, [
+      aInput, T.el("span", { class: "link-arrow", text: "↔" }), bInput]));
+    var slot = T.el("div", { class: "link-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn primary link-commit",
+      "data-op": fn.name, "data-gesture": "link", text: "Link" });
+    commit.addEventListener("click", function () {
+      fireControl(fn, { a: aInput.value, b: bInput.value }, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountUnlinkRow(fn, link, opts) {
+    var wrap = T.el("div", { class: "spatial-link spatial-link-existing", "data-control-group": "" });
+    wrap.appendChild(T.el("span", { class: "link-assignment", text: link.a + " ↔ " + link.b }));
+    var aField = T.el("input", { type: "hidden", "data-param": "a", value: link.a });
+    var bField = T.el("input", { type: "hidden", "data-param": "b", value: link.b });
+    wrap.appendChild(aField);
+    wrap.appendChild(bField);
+    var slot = T.el("div", { class: "link-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn danger link-commit",
+      "data-op": fn.name, "data-gesture": "link", text: "Unlink" });
+    commit.addEventListener("click", function () {
+      fireControl(fn, { a: aField.value, b: bField.value }, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountCord(fromPos, toPos) {
+    var dx = (toPos.x || 0) - (fromPos.x || 0);
+    var dz = (toPos.z || 0) - (fromPos.z || 0);
+    var length = Math.sqrt(dx * dx + dz * dz);
+    var angle = Math.atan2(dz, dx) * (180 / Math.PI);
+    var midX = ((fromPos.x || 0) + (toPos.x || 0)) / 2;
+    var midY = ((fromPos.y || 0) + (toPos.y || 0)) / 2;
+    var midZ = ((fromPos.z || 0) + (toPos.z || 0)) / 2;
+    var style = "--sx:" + midX + "px; --sy:" + midY + "px; --sz:" + midZ + "px; " +
+      "--cord-len:" + length + "px; --cord-rot:" + angle + "deg;";
+    return T.el("div", { class: "spatial-cord", "aria-hidden": "true", style: style });
+  }
+
+  function spatialRoom(children) {
+    var wrap = T.el("div", { class: "spatial-room" });
+    (children || []).forEach(function (c) { wrap.appendChild(c); });
+    return wrap;
+  }
+
+  function roomFloor(children) {
+    var wrap = T.el("div", { class: "spatial-floor" });
+    (children || []).forEach(function (c) { wrap.appendChild(c); });
+    return wrap;
+  }
+
+  global.SpatialKit = { init: init, mountStation: mountStation, mountDoor: mountDoor,
+    mountLinkNew: mountLinkNew, mountUnlinkRow: mountUnlinkRow, mountCord: mountCord,
+    spatialRoom: spatialRoom, roomFloor: roomFloor };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>
+(function () {
+"use strict";
+var T = window.TwinSheet;
+var S = window.SpatialKit;
+S.init(T);
+var $ = function (id) { return document.getElementById(id); };
+
+/* ---- identity / pin ---- */
+var hdr = T.header({ title: "Room Twin — 3D control room",
+  pin: "connecting… · twin-sheet/1 + spatial-kit/1", live: true, stamped: false });
+$("hdr").appendChild(hdr);
+var pinEl = hdr.querySelector(".tw-pin");
+
+/* ---- transport. Single facade on the wire ("room" — the service name);
+   the UI groups the SAME six ops into four facades (station, door, link,
+   room) for display, matching every op's "facade.op" catalogue name
+   (skill/SKILL.md's naming convention) — POST {tool:"room",
+   args:{op,params}} to /tool, same-origin, served by room_bridge.mjs. ---- */
+function call(tool, args) {
+  return fetch("/tool", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool: tool, args: args })
+  }).then(function (r) { return r.text().then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (_) {}
+      var refused = !r.ok || (j && (j.error !== undefined || j.ok === false));
+      return { ok: !refused, body: j ? JSON.stringify(j, null, 2) : t, json: j };
+    });
+  }).catch(function (e) { return { ok: false, body: "bridge unreachable: " + e, json: null }; });
+}
+
+/* ---- the mental model: room has four facades (station, door, link, room)
+   sharing one small fixed room (three stations, two doors — no
+   create/delete-station/door op, straight from the source manual,
+   testing/backend/sources/room/manual.md). ---- */
+var catalogue = [
+  { facade: "station", op: "setLevel", name: "station.setLevel",
+    note: "set a station's level · required: station, value", params: ["station", "value"],
+    mutating: true, consequence: "Changes the station's real level in the room." },
+  { facade: "door", op: "open", name: "door.open",
+    note: "open a door · required: door", params: ["door"],
+    mutating: true, consequence: "Opens a real door in the room." },
+  { facade: "door", op: "close", name: "door.close",
+    note: "close a door · required: door", params: ["door"],
+    mutating: true, consequence: "Closes a real door in the room." },
+  { facade: "link", op: "connect", name: "link.connect",
+    note: "add an adjacency link · required: a, b", params: ["a", "b"],
+    mutating: true, consequence: "Adds a real adjacency link between two stations." },
+  { facade: "link", op: "disconnect", name: "link.disconnect",
+    note: "remove an adjacency link · required: a, b · destructive", params: ["a", "b"],
+    mutating: true, destructive: true,
+    consequence: "Removes a real adjacency link. Not undoable." },
+  { facade: "room", op: "state", name: "room.state",
+    note: "read every station's level, every door's state, and every adjacency link", params: [],
+    mutating: false }
+];
+function opByName(name) { return catalogue.filter(function (c) { return c.name === name; })[0]; }
+
+/* ---- fixed room geometry (px, on the 3D floor's XZ plane — see
+   spatial-kit.css). Presentation only: these coordinates decide where a
+   station/door tile sits in 3D space and where cords are drawn between
+   them; they carry no bearing on which ops exist or whether they fire. ---- */
+var STATION_POS = {
+  helm:  { x: -170, y: -10, z: 60 },
+  comms: { x: 0,    y: -40, z: -70 },
+  power: { x: 170,  y: -10, z: 60 }
+};
+var DOOR_POS = {
+  north: { x: 0,   y: 0, z: -190 },
+  east:  { x: 250, y: 0, z: -10 }
+};
+
+/* ---- log ---- */
+var log = T.logList();
+$("log").appendChild(log);
+
+/* ---- op surface (tier-2, for room.state only) + dispatch. dispatch()
+   always re-reads room.state afterward so the room/links/state panel never
+   show stale values — the twin never renders a state it hasn't just asked
+   the real backend for. ---- */
+function dispatch(fn, params) {
+  return call("room", { op: fn.op, params: params }).then(function (res) {
+    refreshState();
+    return res;
+  });
+}
+function openSurface(fn) {
+  $("surface").replaceChildren(T.opSurface(fn, {
+    dispatch: dispatch,
+    log: function (f, p, r) { T.logEntry(log, f, p, r); },
+    onCancel: function (f) { T.logEntry(log, f, {}, null); }
+  }));
+  $("surface").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function buildReadRack() {
+  var rack = $("rack");
+  rack.replaceChildren();
+  rack.appendChild(T.shelf("room", [opByName("room.state")], openSurface, true));
+}
+
+/* ---- tier-1 designed view: the 3D room (stations + doors + cords) and the
+   textual link list, driven from the last real room.state (stateCache).
+   Rebuilt after every dispatch so a station's shown level, a door's shown
+   state, and the link list are always a real read, never optimistic local
+   state (skill/SKILL.md's "render, never simulate"). ---- */
+var stateCache = { rev: 0, stations: {}, doors: {}, links: [] };
+var controlLog = { log: function (f, p, r) { T.logEntry(log, f, p, r); },
+  onCancel: function (f) { T.logEntry(log, f, {}, null); }, dispatch: dispatch };
+
+function buildRoom() {
+  var wrap = $("room");
+  wrap.replaceChildren();
+  var setLevelFn = opByName("station.setLevel"),
+      openFn = opByName("door.open"), closeFn = opByName("door.close");
+  var s = stateCache.stations, d = stateCache.doors;
+
+  var floorChildren = [];
+  // cords first (so they sit visually beneath the tiles in DOM order)
+  stateCache.links.forEach(function (l) {
+    var a = STATION_POS[l.a], b = STATION_POS[l.b];
+    if (a && b) floorChildren.push(S.mountCord(a, b));
+  });
+  ["helm", "comms", "power"].forEach(function (id) {
+    var st = s[id] || { level: 0 };
+    floorChildren.push(S.mountStation({ fn: setLevelFn, station: id, pos: STATION_POS[id],
+      label: id, initial: st.level, unit: "%", step: "1" }, controlLog));
+  });
+  ["north", "east"].forEach(function (id) {
+    var dr = d[id] || { open: false };
+    floorChildren.push(S.mountDoor({ openFn: openFn, closeFn: closeFn, door: id, pos: DOOR_POS[id],
+      label: id, open: dr.open }, controlLog));
+  });
+  wrap.appendChild(S.spatialRoom([S.roomFloor(floorChildren)]));
+}
+
+function buildLinks() {
+  var wrap = $("links");
+  wrap.replaceChildren();
+  var connectFn = opByName("link.connect"), disconnectFn = opByName("link.disconnect");
+  wrap.appendChild(S.mountLinkNew(connectFn, controlLog));
+  var listWrap = T.el("div", { class: "spatial-link-list" });
+  stateCache.links.forEach(function (l) {
+    listWrap.appendChild(S.mountUnlinkRow(disconnectFn, l, controlLog));
+  });
+  if (!stateCache.links.length) {
+    listWrap.appendChild(T.el("p", { class: "tw-src", text: "no links yet" }));
+  }
+  wrap.appendChild(listWrap);
+}
+
+function buildStatePanel() {
+  $("rev").textContent = "rev " + stateCache.rev + " · witness for the live gate — advances on every accepted write";
+  var sbody = $("stations-body");
+  sbody.replaceChildren();
+  Object.keys(stateCache.stations).forEach(function (id) {
+    var st = stateCache.stations[id];
+    sbody.appendChild(T.el("tr", {}, [T.el("td", { text: id }), T.el("td", { text: st.level + "%" })]));
+  });
+  var dbody = $("doors-body");
+  dbody.replaceChildren();
+  Object.keys(stateCache.doors).forEach(function (id) {
+    var dr = stateCache.doors[id];
+    dbody.appendChild(T.el("tr", {}, [T.el("td", { text: id }), T.el("td", { text: dr.open ? "open" : "closed" })]));
+  });
+  var lbody = $("links-body");
+  lbody.replaceChildren();
+  stateCache.links.forEach(function (l) {
+    lbody.appendChild(T.el("tr", {}, [T.el("td", { text: l.a }), T.el("td", { text: l.b })]));
+  });
+}
+
+function refreshState() {
+  return call("room", { op: "state", params: {} }).then(function (res) {
+    if (res.ok && res.json) {
+      stateCache = { rev: res.json.rev || 0, stations: res.json.stations || {},
+        doors: res.json.doors || {}, links: res.json.links || [] };
+    }
+    buildRoom();
+    buildLinks();
+    buildStatePanel();
+    return res;
+  });
+}
+
+/* ---- degrade switch: a presentation-only control (no data-op, so it never
+   appears in the live gate's control count — see the D6 note in the "Room —
+   walkable 3D" section above). Flips the twin root's data-degrade attribute;
+   spatial-kit.css does the rest. ---- */
+function setDegrade(mode) {
+  document.body.setAttribute("data-degrade", mode);
+  ["3d", "2d", "text"].forEach(function (m) {
+    var btn = $("deg-" + m);
+    if (btn) btn.setAttribute("aria-pressed", String(m === mode));
+  });
+}
+$("deg-3d").addEventListener("click", function () { setDegrade("3d"); });
+$("deg-2d").addEventListener("click", function () { setDegrade("2d"); });
+$("deg-text").addEventListener("click", function () { setDegrade("text"); });
+
+/* ---- boot: room has no auth and no session to open, so the twin connects
+   as soon as its script runs — same reasoning as examples/notes/twin.html,
+   examples/patch/twin.html, and examples/daw/twin.html. ---- */
+function boot() {
+  fetch("/info").then(function (r) { return r.json(); }).then(function (info) {
+    pinEl.textContent = (info.name || "room") + " · " +
+      (info.generated ? "generated" : "") + " · twin-sheet/1 + spatial-kit/1";
+  }).catch(function () {});
+  buildReadRack();
+  refreshState().then(function () {
+    $("palette").replaceChildren(T.palette(catalogue, openSurface));
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>

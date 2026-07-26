@@ -1,0 +1,16 @@
+{
+  "name": "loomground-builder",
+  "version": "0.3.2",
+  "description": "The mental-model-based designer: reads a tool's machine-readable surface and generates a twin UI of it.",
+  "author": {
+    "name": "Loomground Contributors"
+  },
+  "keywords": [
+    "loomground",
+    "builder",
+    "mental-model",
+    "twin",
+    "interface",
+    "tool-design"
+  ]
+}

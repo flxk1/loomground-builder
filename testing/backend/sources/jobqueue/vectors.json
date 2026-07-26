@@ -1,0 +1,22 @@
+[
+  { "domain": "jobqueue-core", "name": "enqueue then size is 1 and peek returns the payload",
+    "steps": [{ "op": "purge" }, { "op": "enqueue", "args": { "payload": "build" }, "bind": "a" }],
+    "when": { "op": "size" },
+    "then": [{ "path": "count", "equals": 1 }],
+    "check": [{ "op": "peek", "then": [{ "path": "payload", "equals": "build" }] }] },
+  { "domain": "jobqueue-core", "name": "FIFO order: dequeue returns and removes the first enqueued payload, then the second",
+    "steps": [{ "op": "purge" }, { "op": "enqueue", "args": { "payload": "a" } }, { "op": "enqueue", "args": { "payload": "b" } }],
+    "when": { "op": "dequeue" },
+    "then": [{ "path": "payload", "equals": "a" }],
+    "check": [{ "op": "dequeue", "then": [{ "path": "payload", "equals": "b" }] }] },
+  { "domain": "jobqueue-empty", "name": "dequeue on an empty queue is refused and size stays 0",
+    "steps": [{ "op": "purge" }],
+    "when": { "op": "dequeue" },
+    "then": [{ "path": "ok", "equals": false }],
+    "check": [{ "op": "size", "then": [{ "path": "count", "equals": 0 }] }] },
+  { "domain": "jobqueue-purge", "name": "purge after enqueue leaves size at 0",
+    "steps": [{ "op": "purge" }, { "op": "enqueue", "args": { "payload": "x" } }],
+    "when": { "op": "purge" },
+    "then": [{ "path": "ok", "equals": true }, { "path": "cleared", "equals": 1 }],
+    "check": [{ "op": "size", "then": [{ "path": "count", "equals": 0 }] }] }
+]

@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patch Twin — modular synth</title>
+<style>
+/* twin-sheet/1 — default binding (light + dark), copied verbatim at
+   authoring time from skill/sheet/binding-default.css. The synth genre needs
+   no special branding, so the neutral binding is used directly — same
+   choice examples/notes/twin.html made. */
+:root {
+  --twin-bg: #f7f7f5;
+  --twin-panel: #ffffff;
+  --twin-panel-2: #eef0ee;
+  --twin-line: #d6d9d6;
+  --twin-txt: #33383a;
+  --twin-txt-dim: #6b7377;
+  --twin-txt-bright: #16191a;
+  --twin-accent: #2f6f5f;
+  --twin-radius: 5px;
+  --twin-radius-lg: 9px;
+  --twin-font-display: system-ui, "Segoe UI", sans-serif;
+  --twin-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --twin-ok: #2e7d5b;
+  --twin-warn: #a8720a;
+  --twin-stop: #b3362c;
+  --twin-info: #2f5f8f;
+  --twin-emph: #a0522d;
+  --twin-ord-0: #5b7a99;
+  --twin-ord-1: #4f8a7a;
+  --twin-ord-2: #a8720a;
+  --twin-ord-3: #c26a2e;
+  --twin-ord-4: #b3362c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --twin-bg: #16181b;
+    --twin-panel: #1d2024;
+    --twin-panel-2: #23272c;
+    --twin-line: #383e45;
+    --twin-txt: #ccd2d6;
+    --twin-txt-dim: #8b949c;
+    --twin-txt-bright: #f0f2f3;
+    --twin-accent: #57b493;
+    --twin-ok: #5aa886;
+    --twin-warn: #d9a13d;
+    --twin-stop: #e2554a;
+    --twin-info: #6fa8d4;
+    --twin-emph: #df8b46;
+    --twin-ord-0: #5b7a99;
+    --twin-ord-1: #5f9088;
+    --twin-ord-2: #c8a23f;
+    --twin-ord-3: #df8b46;
+    --twin-ord-4: #cf463c;
+  }
+}
+</style>
+<style>
+/* twin-sheet/1 — component sheet for generated mental twins.
+   Components reference ONLY the neutral --twin-* interface (see spec §5).
+   A binding file (binding-default.css, or a per-target binding shipped with
+   the target's own pack) supplies the values. Type scale and spacing scale
+   are fixed here and not themeable. */
+
+/* ---------- scales (fixed layout contract) ---------- */
+.twin {
+  /* type scale — six steps, one role each */
+  --ts-micro: 0.625rem;   /* timestamps, source chips */
+  --ts-label: 0.6875rem;  /* control labels, table headers, lamp captions */
+  --ts-body:  0.8125rem;  /* primary reading text */
+  --ts-emph:  0.9375rem;  /* shelf titles, section headers */
+  --ts-h2:    1.125rem;   /* op-surface / card titles */
+  --ts-h1:    1.375rem;   /* twin header, once per page */
+  /* spacing scale — 4px base, seven steps */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  font-family: var(--twin-font-mono);
+  font-size: var(--ts-body);
+  color: var(--twin-txt);
+  background: var(--twin-bg);
+  line-height: 1.5;
+}
+/* density: which half of the scale internal gaps read from */
+.twin[data-density="compact"]     { --g-row: var(--sp-1); --g-block: var(--sp-2); --g-sect: var(--sp-3); --p-card: var(--sp-3); }
+.twin[data-density="comfortable"] { --g-row: var(--sp-2); --g-block: var(--sp-3); --g-sect: var(--sp-5); --p-card: var(--sp-4); }
+
+.twin * { box-sizing: border-box; }
+.twin h1, .twin h2, .twin h3 { font-family: var(--twin-font-display); margin: 0; color: var(--twin-txt-bright); }
+.twin h1 { font-size: var(--ts-h1); font-weight: 600; }
+.twin h2 { font-size: var(--ts-h2); font-weight: 600; }
+.twin h3 { font-size: var(--ts-emph); font-weight: 600; }
+
+/* ---------- 2.9 header / pin ---------- */
+.tw-header { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--twin-line); background: var(--twin-panel); }
+.tw-header .tw-pin { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-badge { font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius); padding: 1px var(--sp-2);
+  color: var(--twin-txt-dim); }
+.tw-badge.live { color: var(--twin-ok); border-color: var(--twin-ok); }
+.tw-badge.fixture { color: var(--twin-warn); border-color: var(--twin-warn); }
+.tw-stamp { display: none; font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--twin-stop); border: 1px dashed var(--twin-stop); border-radius: var(--twin-radius);
+  padding: 1px var(--sp-2); }
+.tw-stamp.on { display: inline-block; }   /* design-unverified: visible only when stamped */
+
+/* ---------- 2.5 lamps ---------- */
+.tw-lamp { display: inline-flex; align-items: center; gap: var(--sp-1);
+  font-size: var(--ts-label); white-space: nowrap; }
+.tw-lamp::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--twin-line); }
+.tw-lamp.ok::before   { background: var(--twin-ok); }
+.tw-lamp.warn::before { background: var(--twin-warn); }
+.tw-lamp.stop::before { background: var(--twin-stop); }
+.tw-lamp.info::before { background: var(--twin-info); }
+.tw-lamp.emph::before { background: var(--twin-emph); }
+/* stepped ordinal (e.g. autonomy grades) — discrete steps, never a fill */
+.tw-steps { display: inline-flex; gap: 3px; align-items: center; }
+.tw-steps i { width: 12px; height: 5px; border-radius: 2px; background: var(--twin-line); font-style: normal; }
+.tw-steps i.on-0 { background: var(--twin-ord-0); } .tw-steps i.on-1 { background: var(--twin-ord-1); }
+.tw-steps i.on-2 { background: var(--twin-ord-2); } .tw-steps i.on-3 { background: var(--twin-ord-3); }
+.tw-steps i.on-4 { background: var(--twin-ord-4); }
+.tw-steps .tw-steps-label { font-size: var(--ts-label); margin-left: var(--sp-1); }
+
+/* ---------- 2.6 card ---------- */
+.tw-card { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card); }
+.tw-card > h3 { margin-bottom: var(--g-block); }
+.tw-grid { display: grid; gap: var(--g-sect); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+/* ---------- 2.1 rack shelf + 2.2 op row ---------- */
+.tw-shelf { border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); overflow: hidden; }
+.tw-shelf > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline;
+  gap: var(--sp-2); padding: var(--g-block) var(--sp-3); font-family: var(--twin-font-display);
+  font-size: var(--ts-emph); font-weight: 600; color: var(--twin-txt-bright); }
+.tw-shelf > summary::-webkit-details-marker { display: none; }
+.tw-shelf > summary::before { content: "▸"; font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-shelf[open] > summary::before { content: "▾"; }
+.tw-shelf > summary .tw-count { font-size: var(--ts-label); font-weight: 400; color: var(--twin-txt-dim); }
+.tw-oprow { display: flex; align-items: baseline; gap: var(--sp-2); width: 100%;
+  padding: var(--g-row) var(--sp-3); border: 0; border-top: 1px solid var(--twin-line);
+  background: transparent; color: var(--twin-txt); font: inherit; text-align: left; cursor: pointer; }
+.tw-oprow:hover, .tw-oprow:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-oprow .tw-opname { font-weight: 600; white-space: nowrap; }
+.tw-oprow .tw-opnote { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+/* ---------- 2.3 op surface ---------- */
+.tw-opsurface { display: flex; flex-direction: column; gap: var(--g-block); }
+.tw-params { display: grid; gap: var(--g-row); }
+.tw-field { display: grid; gap: 2px; }
+.tw-field label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-field input, .tw-field textarea, .tw-palette input {
+  font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); width: 100%; }
+.tw-field input:focus-visible, .tw-field textarea:focus-visible, .tw-palette input:focus-visible {
+  outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.tw-btn { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.tw-btn:hover { border-color: var(--twin-accent); }
+.tw-btn.primary { border-color: var(--twin-accent); color: var(--twin-txt-bright); }
+.tw-btn.danger { border-color: var(--twin-stop); }
+.tw-btn:disabled { opacity: .45; cursor: default; }
+.tw-response { background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-2) var(--sp-3);
+  font-size: var(--ts-body); white-space: pre-wrap; word-break: break-word;
+  max-height: 40vh; overflow: auto; margin: 0; }
+.tw-response.error { border-color: var(--twin-stop); }
+.tw-src { font-size: var(--ts-micro); color: var(--twin-txt-dim); text-transform: uppercase;
+  letter-spacing: .06em; }
+
+/* ---------- 2.10 confirm dialog ---------- */
+.tw-dialog { border: 1px solid var(--twin-warn); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); padding: var(--p-card); display: flex; flex-direction: column;
+  gap: var(--g-block); max-width: 560px; }
+.tw-dialog.destructive { border-color: var(--twin-stop); }
+.tw-dialog .tw-consequence { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-dialog .tw-composed { max-height: 30vh; overflow: auto; }
+.tw-dialog .tw-actions { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+
+/* ---------- 2.7 table ---------- */
+.tw-table { width: 100%; border-collapse: collapse; font-size: var(--ts-body); }
+.tw-table th { font-size: var(--ts-label); text-align: left; color: var(--twin-txt-dim);
+  font-weight: 600; padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line); }
+.tw-table td { padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line);
+  vertical-align: baseline; }
+
+/* ---------- 2.8 log / stream ---------- */
+.tw-log { display: flex; flex-direction: column-reverse; gap: var(--g-row);
+  max-height: 32vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.tw-log li { display: flex; gap: var(--sp-2); align-items: baseline;
+  font-size: var(--ts-label); border-top: 1px solid var(--twin-line); padding-top: var(--g-row); }
+.tw-log time { font-size: var(--ts-micro); color: var(--twin-txt-dim); white-space: nowrap; }
+
+/* ---------- 2.4 palette ---------- */
+.tw-palette { position: relative; }
+.tw-palette-list { position: absolute; z-index: 30; left: 0; right: 0; margin: 2px 0 0;
+  padding: var(--sp-1); list-style: none; background: var(--twin-panel);
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  max-height: 40vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.tw-palette-list li { border-radius: var(--twin-radius); }
+.tw-palette-list button { display: flex; gap: var(--sp-2); align-items: baseline; width: 100%;
+  padding: var(--g-row) var(--sp-2); border: 0; background: transparent; color: var(--twin-txt);
+  font: inherit; text-align: left; cursor: pointer; border-radius: var(--twin-radius); }
+.tw-palette-list button:hover, .tw-palette-list button:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-palette-list .tw-facet { font-size: var(--ts-micro); color: var(--twin-txt-dim);
+  margin-left: auto; white-space: nowrap; }
+
+/* ---------- layout helpers ---------- */
+.tw-page { max-width: 1180px; margin: 0 auto; padding: var(--g-sect) var(--sp-5) var(--sp-7);
+  display: flex; flex-direction: column; gap: var(--g-sect); }
+.tw-row { display: flex; gap: var(--g-block); align-items: center; flex-wrap: wrap; }
+.tw-spacer { flex: 1; }
+</style>
+<style>
+/* synth-kit/1 — the modular-synth genre substrate, copied verbatim at
+   authoring time from skill/genres/synth/synth-kit.css. Its own small
+   vocabulary (knob, cable/patchbay, module) built ONLY on top of the sheet's
+   tokens/scales above — no new scale, no parallel CSS (skill/SKILL.md step
+   4's composition discipline). */
+.synth-rack { display: flex; flex-direction: column; gap: var(--g-sect); }
+.synth-modules, .synth-cables { display: grid; gap: var(--g-sect);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+.synth-module { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card);
+  display: flex; flex-direction: column; gap: var(--g-block); }
+.synth-module > h3 { display: flex; align-items: baseline; gap: var(--sp-2); }
+.synth-module .synth-kind { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  text-transform: uppercase; letter-spacing: .06em; font-weight: 400; }
+
+.synth-knob { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.knob-face { width: 56px; height: 56px; border-radius: 50%;
+  background: conic-gradient(var(--twin-accent) 0deg, var(--twin-line) 0deg);
+  border: 1px solid var(--twin-line); position: relative; }
+.knob-face::after { content: ""; position: absolute; top: 6px; left: 50%; width: 2px; height: 20px;
+  background: var(--twin-txt-bright); transform-origin: 50% 22px; transform: translateX(-50%) rotate(var(--knob-rot, 0deg)); }
+.knob-label { font-size: var(--ts-label); color: var(--twin-txt-dim); text-align: center; }
+.knob-value-row { display: flex; align-items: center; gap: var(--sp-2); }
+.knob-value { width: 6.5em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); text-align: right; }
+.knob-value:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.knob-unit { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.knob-commit { width: 100%; }
+.knob-slot { width: 100%; }
+
+.synth-patchbay { display: flex; flex-direction: column; gap: var(--g-block); }
+.synth-cable { display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel-2); }
+.synth-cable.synth-cable-connect { border-style: dashed; }
+.cable-label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.cable-ports { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.cable-port { flex: 1; min-width: 8em; font-family: var(--twin-font-mono); font-size: var(--ts-body);
+  color: var(--twin-txt); background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); }
+.cable-port:focus-visible { outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.cable-plug { color: var(--twin-accent); font-weight: 600; }
+.cable-route { font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  flex: 1; }
+.cable-slot { width: 100%; }
+.synth-cable-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.synth-state-table { width: 100%; }
+.synth-rev { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+</style>
+</head>
+<body class="twin" data-density="comfortable" style="margin:0">
+<div id="hdr"></div>
+<main class="tw-page">
+
+  <section class="tw-card">
+    <h3>Find any function</h3>
+    <span class="tw-src">tier-0 palette · every catalogued op</span>
+    <div id="palette"></div>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Rack — knobs</h3>
+    <p class="tw-src">synth-kit · knob (data-gesture="turn") · osc.setFreq × 2 modules,
+      filter.setCutoff × 1 module — turning sets the value input then commits,
+      confirm-gated like any other mutating op</p>
+    <div id="modules" class="synth-modules"></div>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Patchbay — cables</h3>
+    <p class="tw-src">synth-kit · cable (data-gesture="patch") · patch.connect (new cable)
+      and patch.disconnect (per existing connection, destructive — typed-name gated)</p>
+    <div id="patchbay" class="synth-cables"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>State — real, out-of-band</h3>
+    <span class="tw-src">live · patch.list · connections and every module's current
+      parameter, re-read after every dispatch — never computed locally</span>
+    <p class="synth-rev" id="rev"></p>
+    <table class="tw-table synth-state-table">
+      <thead><tr><th>module</th><th>kind</th><th>value</th></tr></thead>
+      <tbody id="params-body"></tbody>
+    </table>
+    <table class="tw-table synth-state-table" style="margin-top:var(--sp-3)">
+      <thead><tr><th>from</th><th>to</th></tr></thead>
+      <tbody id="connections-body"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Operations</h3>
+    <p class="tw-src">tier-2 rack — the one read op (patch.list) exposed the same
+      way every other twin's reads are: a rack row opening an op surface
+      (twin-sheet.js, unchanged) — the knobs/cables above are the tier-1
+      designed view onto the four write ops</p>
+    <div id="rack" style="display:flex;flex-direction:column;gap:var(--g-block)"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Op surface</h3>
+    <span class="tw-src">opened from the rack row or the palette</span>
+    <div id="surface"><p class="tw-src">no function open</p></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Call log</h3>
+    <div id="log"></div>
+  </section>
+
+</main>
+
+<script>
+/* twin-sheet/1 — DOM construction helpers for the component sheet, copied
+   verbatim at authoring time from skill/sheet/twin-sheet.js. */
+(function (global) {
+  "use strict";
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) {
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  /* 2.5 verdict/status lamp. word: verbatim vocabulary string; role: one of
+     ok|warn|stop|info|emph, from the surface pack's vocabulary→role map. */
+  function lamp(word, role) {
+    return el("span", { class: "tw-lamp " + (role || ""), role: "status",
+      "aria-label": word }, [word]);
+  }
+
+  /* 2.5 mutation lamp from a function descriptor (fail-closed). */
+  function mutLamp(fn) {
+    if (fn.mutating === false) return lamp("read", "ok");
+    if (fn.destructive) return lamp("destructive", "stop");
+    return lamp("mutates", "warn");
+  }
+
+  /* 2.5 stepped ordinal, e.g. autonomy grades. n steps, active index, label. */
+  function steps(n, active, label) {
+    var wrap = el("span", { class: "tw-steps", role: "img", "aria-label": label });
+    for (var i = 0; i < n; i++)
+      wrap.appendChild(el("i", { class: i <= active ? "on-" + i : "" }));
+    wrap.appendChild(el("span", { class: "tw-steps-label", text: label }));
+    return wrap;
+  }
+
+  /* 2.9 header/pin. stamped=true shows the design-unverified stamp. */
+  function header(opts) {
+    return el("header", { class: "tw-header" }, [
+      el("h1", { text: opts.title }),
+      el("span", { class: "tw-pin", text: opts.pin || "" }),
+      el("span", { class: "tw-badge " + (opts.live ? "live" : "fixture"),
+        text: opts.live ? "live" : "fixture-backed" }),
+      el("span", { class: "tw-stamp" + (opts.stamped ? " on" : ""),
+        text: "design-unverified" })
+    ]);
+  }
+
+  /* 2.3 confirm flow. Two-phase: compose → confirm card → dispatch/cancel.
+     opts.typedName: require typing fn.name to enable confirm (current rule:
+     recommended for destructive; pending-decider whether required). */
+  function confirmGate(fn, params, opts, onConfirm, onCancel) {
+    var composed = JSON.stringify(params, null, 2);
+    var okBtn = el("button", { class: "tw-btn " + (fn.destructive ? "danger" : "primary"),
+      text: "Confirm" });
+    var dialog = el("div", { class: "tw-dialog" + (fn.destructive ? " destructive" : ""),
+      role: "alertdialog", "aria-label": "Confirm " + fn.name });
+    dialog.appendChild(el("h3", { text: "Confirm: " + fn.name }));
+    dialog.appendChild(el("p", { class: "tw-consequence",
+      text: fn.consequence || "This call is a recorded action on the target." }));
+    dialog.appendChild(el("pre", { class: "tw-response tw-composed", text: composed }));
+    if (opts && opts.typedName) {
+      okBtn.disabled = true;
+      var gateField = el("div", { class: "tw-field" }, [
+        el("label", { text: "Type the function name to enable confirm" }),
+        el("input", { type: "text", oninput: function (e) {
+          okBtn.disabled = e.target.value !== fn.name;
+        } })
+      ]);
+      dialog.appendChild(gateField);
+    }
+    okBtn.addEventListener("click", function () { onConfirm(params, dialog); });
+    dialog.appendChild(el("div", { class: "tw-actions" }, [
+      el("button", { class: "tw-btn", text: "Cancel",
+        onclick: function () { onCancel(dialog); } }),
+      okBtn
+    ]));
+    return dialog;
+  }
+
+  /* 2.3 op surface for one function descriptor:
+     { name, note, facade, params: [names], mutating, destructive,
+       consequence } — dispatch(fn, params) => Promise<{ok, body, error}>.
+     Renders responses verbatim; a failed call renders as .error. Each
+     parameter input carries data-param="pname" — the Control grammar's
+     param hook (see opRow below and SKILL.md's "Control grammar" section) —
+     so the gate can fill it by the catalogued param name, not by scanning
+     field-label text. */
+  function opSurface(fn, opts) {
+    var root = el("section", { class: "tw-opsurface",
+      "aria-label": fn.name });
+    root.appendChild(el("h2", { text: fn.name }));
+    if (fn.note) root.appendChild(el("p", { class: "tw-src", text: fn.note }));
+    var form = el("div", { class: "tw-params" });
+    var inputs = {};
+    (fn.params || []).forEach(function (p) {
+      var input = el("input", { type: "text", "aria-label": p, "data-param": p });
+      inputs[p] = input;
+      form.appendChild(el("div", { class: "tw-field" }, [
+        el("label", { text: p }), input]));
+    });
+    root.appendChild(form);
+    var slot = el("div");
+    var runBtn = el("button", { class: "tw-btn primary",
+      text: fn.mutating === false ? "Run" : "Compose…" });
+    function renderResponse(res) {
+      var pre = el("pre", { class: "tw-response" + (res.ok ? "" : " error"),
+        text: res.body });
+      slot.replaceChildren(el("span", { class: "tw-src",
+        text: res.ok ? "response · verbatim" : "refused · verbatim" }), pre);
+    }
+    runBtn.addEventListener("click", function () {
+      var params = {};
+      Object.keys(inputs).forEach(function (p) {
+        var v = inputs[p].value;
+        if (v !== "") { try { params[p] = JSON.parse(v); } catch (_) { params[p] = v; } }
+      });
+      if (fn.mutating === false) {
+        opts.dispatch(fn, params).then(renderResponse);
+        return;
+      }
+      var dialog = confirmGate(fn, params,
+        { typedName: !!fn.destructive && opts.typedName !== false },
+        function (p, d) {
+          d.remove();
+          opts.dispatch(fn, p).then(function (res) {
+            renderResponse(res);
+            if (opts.log) opts.log(fn, p, res);
+          });
+        },
+        function (d) { d.remove(); if (opts.onCancel) opts.onCancel(fn); });
+      slot.replaceChildren(dialog);
+    });
+    root.appendChild(el("div", { class: "tw-row" }, [runBtn]));
+    root.appendChild(slot);
+    return root;
+  }
+
+  /* 2.2 op row. Carries the Control grammar's two control-level hooks:
+     data-op="facade.op" and data-gesture="activate". */
+  function opRow(fn, onOpen) {
+    return el("button", { class: "tw-oprow", "data-op": fn.name,
+      "data-gesture": "activate", onclick: function () { onOpen(fn); } }, [
+      el("span", { class: "tw-opname", text: fn.name }),
+      el("span", { class: "tw-opnote", text: fn.note || "" }),
+      mutLamp(fn)
+    ]);
+  }
+
+  /* 2.1 rack shelf: one facade, its functions. */
+  function shelf(facade, fns, onOpen, open) {
+    var d = el("details", { class: "tw-shelf" });
+    if (open) d.setAttribute("open", "");
+    d.appendChild(el("summary", {}, [
+      facade, el("span", { class: "tw-count", text: fns.length + " ops" })]));
+    fns.forEach(function (fn) { d.appendChild(opRow(fn, onOpen)); });
+    return d;
+  }
+
+  /* 2.4 tier-0 palette over the whole catalogue. */
+  function palette(catalogue, onOpen) {
+    var wrap = el("div", { class: "tw-palette" });
+    var list = el("ul", { class: "tw-palette-list", hidden: "" });
+    var input = el("input", { type: "search",
+      placeholder: "Find any function — name, note, facade",
+      "aria-label": "Search all functions" });
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      list.replaceChildren();
+      if (!q) { list.hidden = true; return; }
+      var hits = catalogue.filter(function (fn) {
+        return (fn.name + " " + (fn.note || "") + " " + (fn.facade || ""))
+          .toLowerCase().indexOf(q) !== -1;
+      }).slice(0, 40);
+      hits.forEach(function (fn) {
+        list.appendChild(el("li", {}, [el("button", {
+          onclick: function () { list.hidden = true; input.value = ""; onOpen(fn); } }, [
+          el("span", { class: "tw-opname", text: fn.name }),
+          el("span", { class: "tw-opnote", text: fn.note || "" }),
+          el("span", { class: "tw-facet", text: fn.facade || "" })])]));
+      });
+      list.hidden = hits.length === 0;
+    });
+    wrap.appendChild(input); wrap.appendChild(list);
+    return wrap;
+  }
+
+  /* 2.8 call log */
+  function logList() { return el("ul", { class: "tw-log", "aria-label": "Call log" }); }
+  function logEntry(list, fn, params, res) {
+    list.appendChild(el("li", {}, [
+      el("time", { text: new Date().toISOString() }),
+      el("span", { class: "tw-opname", text: fn.name }),
+      lamp(res ? (res.ok ? "answered" : "refused") : "NOT SENT", res ? (res.ok ? "ok" : "stop") : "stop"),
+      el("span", { class: "tw-opnote", text: JSON.stringify(params) })
+    ]));
+  }
+
+  global.TwinSheet = { el: el, lamp: lamp, mutLamp: mutLamp, steps: steps,
+    header: header, opSurface: opSurface, opRow: opRow, shelf: shelf,
+    palette: palette, confirmGate: confirmGate, logList: logList, logEntry: logEntry };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>
+/* synth-kit/1 — DOM construction helpers for the modular-synth genre
+   substrate, copied verbatim at authoring time from
+   skill/genres/synth/synth-kit.js. */
+(function (global) {
+  "use strict";
+
+  var T = null;
+
+  function init(TwinSheet) { T = TwinSheet; }
+
+  function numOrRaw(v) {
+    if (v === "") return v;
+    var n = Number(v);
+    return Number.isFinite(n) ? n : v;
+  }
+
+  function renderInline(slot, res) {
+    var pre = T.el("pre", { class: "tw-response" + (res.ok ? "" : " error"), text: res.body });
+    slot.replaceChildren(T.el("span", { class: "tw-src",
+      text: res.ok ? "response · verbatim" : "refused · verbatim" }), pre);
+  }
+
+  function fireControl(fn, params, slot, opts) {
+    var dialog = T.confirmGate(fn, params, { typedName: !!fn.destructive }, function (p, d) {
+      d.remove();
+      opts.dispatch(fn, p).then(function (res) {
+        renderInline(slot, res);
+        if (opts.log) opts.log(fn, p, res);
+      });
+    }, function (d) { d.remove(); if (opts.onCancel) opts.onCancel(fn); });
+    slot.replaceChildren(dialog);
+  }
+
+  function mountKnob(spec, opts) {
+    var fn = spec.fn, valueParam = spec.valueParam;
+    var wrap = T.el("div", { class: "synth-knob", "data-control-group": "" });
+    wrap.appendChild(T.el("div", { class: "knob-face" }));
+    wrap.appendChild(T.el("div", { class: "knob-label", text: spec.label }));
+    var moduleField = T.el("input", { type: "hidden", "data-param": "module", value: spec.module });
+    wrap.appendChild(moduleField);
+    var valueInput = T.el("input", { type: "number", class: "knob-value",
+      "data-param": valueParam, value: String(spec.initial), step: spec.step || "1",
+      "aria-label": spec.label });
+    wrap.appendChild(T.el("div", { class: "knob-value-row" }, [
+      valueInput, T.el("span", { class: "knob-unit", text: spec.unit || "" })]));
+    var slot = T.el("div", { class: "knob-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn primary knob-commit",
+      "data-op": fn.name, "data-gesture": "turn", text: "Turn" });
+    commit.addEventListener("click", function () {
+      var params = { module: moduleField.value };
+      params[valueParam] = numOrRaw(valueInput.value);
+      fireControl(fn, params, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountConnect(fn, opts) {
+    var wrap = T.el("div", { class: "synth-cable synth-cable-connect", "data-control-group": "" });
+    wrap.appendChild(T.el("div", { class: "cable-label", text: "New patch cable" }));
+    var fromInput = T.el("input", { type: "text", class: "cable-port", "data-param": "from",
+      placeholder: "from — e.g. osc1.out", "aria-label": "from port" });
+    var toInput = T.el("input", { type: "text", class: "cable-port", "data-param": "to",
+      placeholder: "to — e.g. filter1.in", "aria-label": "to port" });
+    wrap.appendChild(T.el("div", { class: "cable-ports" }, [
+      fromInput, T.el("span", { class: "cable-plug", text: "→" }), toInput]));
+    var slot = T.el("div", { class: "cable-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn primary knob-commit",
+      "data-op": fn.name, "data-gesture": "patch", text: "Patch" });
+    commit.addEventListener("click", function () {
+      fireControl(fn, { from: fromInput.value, to: toInput.value }, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function mountDisconnectRow(fn, conn, opts) {
+    var wrap = T.el("div", { class: "synth-cable synth-cable-disconnect", "data-control-group": "" });
+    wrap.appendChild(T.el("span", { class: "cable-route", text: conn.from + " → " + conn.to }));
+    var fromField = T.el("input", { type: "hidden", "data-param": "from", value: conn.from });
+    var toField = T.el("input", { type: "hidden", "data-param": "to", value: conn.to });
+    wrap.appendChild(fromField);
+    wrap.appendChild(toField);
+    var slot = T.el("div", { class: "cable-slot" });
+    var commit = T.el("button", { type: "button", class: "tw-btn danger knob-commit",
+      "data-op": fn.name, "data-gesture": "patch", text: "Unpatch" });
+    commit.addEventListener("click", function () {
+      fireControl(fn, { from: fromField.value, to: toField.value }, slot, opts);
+    });
+    wrap.appendChild(commit);
+    wrap.appendChild(slot);
+    return wrap;
+  }
+
+  function synthModule(title, kind, children) {
+    var wrap = T.el("div", { class: "synth-module" });
+    wrap.appendChild(T.el("h3", {}, [title, T.el("span", { class: "synth-kind", text: kind })]));
+    (children || []).forEach(function (c) { wrap.appendChild(c); });
+    return wrap;
+  }
+
+  global.SynthKit = { init: init, mountKnob: mountKnob, mountConnect: mountConnect,
+    mountDisconnectRow: mountDisconnectRow, synthModule: synthModule };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>
+(function () {
+"use strict";
+var T = window.TwinSheet;
+var S = window.SynthKit;
+S.init(T);
+var $ = function (id) { return document.getElementById(id); };
+
+/* ---- identity / pin ---- */
+var hdr = T.header({ title: "Patch Twin — modular synth",
+  pin: "connecting… · twin-sheet/1 + synth-kit/1", live: true, stamped: false });
+$("hdr").appendChild(hdr);
+var pinEl = hdr.querySelector(".tw-pin");
+
+/* ---- transport. Single facade on the wire ("patch" — the service name);
+   the UI groups the SAME five ops into three facades (osc, filter, patch)
+   for display, matching every op's "facade.op" catalogue name
+   (skill/SKILL.md's naming convention) — POST {tool:"patch",
+   args:{op,params}} to /tool, same-origin, served by patch_bridge.mjs. ---- */
+function call(tool, args) {
+  return fetch("/tool", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool: tool, args: args })
+  }).then(function (r) { return r.text().then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (_) {}
+      var refused = !r.ok || (j && (j.error !== undefined || j.ok === false));
+      return { ok: !refused, body: j ? JSON.stringify(j, null, 2) : t, json: j };
+    });
+  }).catch(function (e) { return { ok: false, body: "bridge unreachable: " + e, json: null }; });
+}
+
+/* ---- the mental model: patch has three facades (osc, filter, patch)
+   sharing one small fixed rack (two oscillators, one filter — no
+   create/delete-module op, straight from the source manual,
+   testing/backend/sources/patch/manual.md). ---- */
+var catalogue = [
+  { facade: "osc", op: "setFreq", name: "osc.setFreq",
+    note: "set an oscillator's frequency · required: module, hz", params: ["module", "hz"],
+    mutating: true, consequence: "Retunes the oscillator in real time." },
+  { facade: "filter", op: "setCutoff", name: "filter.setCutoff",
+    note: "set the filter's cutoff · required: module, hz", params: ["module", "hz"],
+    mutating: true, consequence: "Changes the filter's cutoff in real time." },
+  { facade: "patch", op: "connect", name: "patch.connect",
+    note: "patch one port to another · required: from, to", params: ["from", "to"],
+    mutating: true, consequence: "Adds a real signal-path connection." },
+  { facade: "patch", op: "disconnect", name: "patch.disconnect",
+    note: "remove a patch connection · required: from, to · destructive", params: ["from", "to"],
+    mutating: true, destructive: true,
+    consequence: "Removes a real signal-path connection. Not undoable." },
+  { facade: "patch", op: "list", name: "patch.list",
+    note: "read current connections + every module's parameter", params: [], mutating: false }
+];
+function opByName(name) { return catalogue.filter(function (c) { return c.name === name; })[0]; }
+
+/* ---- log ---- */
+var log = T.logList();
+$("log").appendChild(log);
+
+/* ---- op surface (tier-2, for patch.list only) + dispatch. dispatch()
+   always re-reads patch.list afterward so the knobs/patchbay/state panel
+   never show stale values — the twin never renders a state it hasn't just
+   asked the real backend for. ---- */
+function dispatch(fn, params) {
+  return call("patch", { op: fn.op, params: params }).then(function (res) {
+    refreshState();
+    return res;
+  });
+}
+function openSurface(fn) {
+  $("surface").replaceChildren(T.opSurface(fn, {
+    dispatch: dispatch,
+    log: function (f, p, r) { T.logEntry(log, f, p, r); },
+    onCancel: function (f) { T.logEntry(log, f, {}, null); }
+  }));
+  $("surface").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function buildReadRack() {
+  var rack = $("rack");
+  rack.replaceChildren();
+  rack.appendChild(T.shelf("patch", [opByName("patch.list")], openSurface, true));
+}
+
+/* ---- tier-1 designed view: knobs + patchbay, driven from the last real
+   patch.list state (stateCache). Rebuilt after every dispatch so a knob's
+   shown value and the patchbay's connection list are always a real read,
+   never optimistic local state (skill/SKILL.md's "render, never
+   simulate"). ---- */
+var stateCache = { rev: 0, connections: [], params: {} };
+var controlLog = { log: function (f, p, r) { T.logEntry(log, f, p, r); },
+  onCancel: function (f) { T.logEntry(log, f, {}, null); }, dispatch: dispatch };
+
+function buildModules() {
+  var wrap = $("modules");
+  wrap.replaceChildren();
+  var oscFn = opByName("osc.setFreq"), filterFn = opByName("filter.setCutoff");
+  var p = stateCache.params;
+  wrap.appendChild(S.synthModule("osc1", "oscillator", [
+    S.mountKnob({ fn: oscFn, module: "osc1", valueParam: "hz",
+      label: "osc1 · freq", initial: (p.osc1 && p.osc1.freq) || 440, unit: "Hz", step: "1" }, controlLog)
+  ]));
+  wrap.appendChild(S.synthModule("osc2", "oscillator", [
+    S.mountKnob({ fn: oscFn, module: "osc2", valueParam: "hz",
+      label: "osc2 · freq", initial: (p.osc2 && p.osc2.freq) || 220, unit: "Hz", step: "1" }, controlLog)
+  ]));
+  wrap.appendChild(S.synthModule("filter1", "filter", [
+    S.mountKnob({ fn: filterFn, module: "filter1", valueParam: "hz",
+      label: "filter1 · cutoff", initial: (p.filter1 && p.filter1.cutoff) || 1000, unit: "Hz", step: "10" }, controlLog)
+  ]));
+}
+function buildPatchbay() {
+  var wrap = $("patchbay");
+  wrap.replaceChildren();
+  var connectFn = opByName("patch.connect"), disconnectFn = opByName("patch.disconnect");
+  wrap.appendChild(S.mountConnect(connectFn, controlLog));
+  var listWrap = T.el("div", { class: "synth-cable-list" });
+  stateCache.connections.forEach(function (c) {
+    listWrap.appendChild(S.mountDisconnectRow(disconnectFn, c, controlLog));
+  });
+  if (!stateCache.connections.length) {
+    listWrap.appendChild(T.el("p", { class: "tw-src", text: "no connections yet" }));
+  }
+  wrap.appendChild(listWrap);
+}
+function buildStatePanel() {
+  $("rev").textContent = "rev " + stateCache.rev + " · witness for the live gate — advances on every accepted write";
+  var pbody = $("params-body");
+  pbody.replaceChildren();
+  Object.keys(stateCache.params).forEach(function (id) {
+    var m = stateCache.params[id];
+    var value = m.kind === "osc" ? m.freq + " Hz" : m.cutoff + " Hz";
+    pbody.appendChild(T.el("tr", {}, [
+      T.el("td", { text: id }), T.el("td", { text: m.kind }), T.el("td", { text: value })]));
+  });
+  var cbody = $("connections-body");
+  cbody.replaceChildren();
+  stateCache.connections.forEach(function (c) {
+    cbody.appendChild(T.el("tr", {}, [T.el("td", { text: c.from }), T.el("td", { text: c.to })]));
+  });
+}
+
+function refreshState() {
+  return call("patch", { op: "list", params: {} }).then(function (res) {
+    if (res.ok && res.json) {
+      stateCache = { rev: res.json.rev || 0, connections: res.json.connections || [],
+        params: res.json.params || {} };
+    }
+    buildModules();
+    buildPatchbay();
+    buildStatePanel();
+    return res;
+  });
+}
+
+/* ---- boot: patch has no auth and no session to open, so the twin connects
+   as soon as its script runs — same reasoning as examples/notes/twin.html. ---- */
+function boot() {
+  fetch("/info").then(function (r) { return r.json(); }).then(function (info) {
+    pinEl.textContent = (info.name || "patch") + " · " +
+      (info.generated ? "generated" : "") + " · twin-sheet/1 + synth-kit/1";
+  }).catch(function () {});
+  buildReadRack();
+  refreshState().then(function () {
+    $("palette").replaceChildren(T.palette(catalogue, openSurface));
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "_source": "testing/backend/sources/notes/manual.md",
+  "_note": "Plain CRUD, deliberately zero declared inter-op relations: the manual states data-flow between ops only informally ('after add, list contains...'), never an explicit ordering/authorization/grouping contract, so none is invented here (resolution honesty). This is the intended contrast case against patch.json.",
+  "object_type": "notes",
+  "ops": [
+    {
+      "facade": "notes",
+      "name": "add",
+      "mutates": "write",
+      "params": [
+        {"name": "text", "type": "string"}
+      ],
+      "relations": []
+    },
+    {
+      "facade": "notes",
+      "name": "list",
+      "mutates": "read",
+      "params": [],
+      "relations": []
+    },
+    {
+      "facade": "notes",
+      "name": "get",
+      "mutates": "read",
+      "params": [
+        {"name": "id", "type": "string"}
+      ],
+      "relations": []
+    },
+    {
+      "facade": "notes",
+      "name": "done",
+      "mutates": "write",
+      "params": [
+        {"name": "id", "type": "string"}
+      ],
+      "relations": []
+    },
+    {
+      "facade": "notes",
+      "name": "remove",
+      "mutates": "destructive",
+      "params": [
+        {"name": "id", "type": "string"}
+      ],
+      "relations": []
+    }
+  ]
+}

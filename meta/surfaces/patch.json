@@ -1,0 +1,68 @@
+{
+  "_source": "testing/backend/sources/patch/manual.md",
+  "_note": "Contrast case against notes.json: a connections-shaped backend, so relations are declared where the manual actually supports them -- setFreq/setCutoff tune sibling rack parameters, connect precedes a successful disconnect (the manual: disconnect errors 'if no such connection exists'), and every mutating op feeds the state list reads. No 'grants' relation is declared: the manual has no authorization/permission semantics to project onto intentional, and none is invented (resolution honesty) -- this is deliberate and called out in the gate report.",
+  "object_type": "patch",
+  "ops": [
+    {
+      "facade": "patch",
+      "name": "setFreq",
+      "mutates": "write",
+      "params": [
+        {"name": "module", "type": "controlled_identifier", "vocabulary": ["osc1", "osc2"]},
+        {"name": "hz", "type": "number"}
+      ],
+      "relations": [
+        {"to": "list", "kind": "feeds"},
+        {"to": "setCutoff", "kind": "sibling"}
+      ]
+    },
+    {
+      "facade": "patch",
+      "name": "setCutoff",
+      "mutates": "write",
+      "params": [
+        {"name": "module", "type": "controlled_identifier", "vocabulary": ["filter1"]},
+        {"name": "hz", "type": "number"}
+      ],
+      "relations": [
+        {"to": "list", "kind": "feeds"}
+      ]
+    },
+    {
+      "facade": "patch",
+      "name": "connect",
+      "mutates": "write",
+      "params": [
+        {"name": "from", "type": "controlled_identifier",
+         "vocabulary": ["osc1.out", "osc1.in", "osc2.out", "osc2.in", "filter1.out", "filter1.in"]},
+        {"name": "to", "type": "controlled_identifier",
+         "vocabulary": ["osc1.out", "osc1.in", "osc2.out", "osc2.in", "filter1.out", "filter1.in"]}
+      ],
+      "relations": [
+        {"to": "list", "kind": "feeds"},
+        {"to": "disconnect", "kind": "precedes"}
+      ]
+    },
+    {
+      "facade": "patch",
+      "name": "disconnect",
+      "mutates": "destructive",
+      "params": [
+        {"name": "from", "type": "controlled_identifier",
+         "vocabulary": ["osc1.out", "osc1.in", "osc2.out", "osc2.in", "filter1.out", "filter1.in"]},
+        {"name": "to", "type": "controlled_identifier",
+         "vocabulary": ["osc1.out", "osc1.in", "osc2.out", "osc2.in", "filter1.out", "filter1.in"]}
+      ],
+      "relations": [
+        {"to": "list", "kind": "feeds"}
+      ]
+    },
+    {
+      "facade": "patch",
+      "name": "list",
+      "mutates": "read",
+      "params": [],
+      "relations": []
+    }
+  ]
+}

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes Twin</title>
+<style>
+/* twin-sheet/1 — default binding (light + dark), copied at authoring time
+   from skill/sheet/binding-default.css. Notes needs no special branding, so
+   the neutral binding is used directly rather than mapped through a
+   product-token layer (compare examples/rvnd-3/twin.html's two-step
+   rvnd-token -> --twin-* binding, which exists because RVND has its own
+   design tokens to honour). */
+:root {
+  --twin-bg: #f7f7f5;
+  --twin-panel: #ffffff;
+  --twin-panel-2: #eef0ee;
+  --twin-line: #d6d9d6;
+  --twin-txt: #33383a;
+  --twin-txt-dim: #6b7377;
+  --twin-txt-bright: #16191a;
+  --twin-accent: #2f6f5f;
+  --twin-radius: 5px;
+  --twin-radius-lg: 9px;
+  --twin-font-display: system-ui, "Segoe UI", sans-serif;
+  --twin-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --twin-ok: #2e7d5b;
+  --twin-warn: #a8720a;
+  --twin-stop: #b3362c;
+  --twin-info: #2f5f8f;
+  --twin-emph: #a0522d;
+  --twin-ord-0: #5b7a99;
+  --twin-ord-1: #4f8a7a;
+  --twin-ord-2: #a8720a;
+  --twin-ord-3: #c26a2e;
+  --twin-ord-4: #b3362c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --twin-bg: #16181b;
+    --twin-panel: #1d2024;
+    --twin-panel-2: #23272c;
+    --twin-line: #383e45;
+    --twin-txt: #ccd2d6;
+    --twin-txt-dim: #8b949c;
+    --twin-txt-bright: #f0f2f3;
+    --twin-accent: #57b493;
+    --twin-ok: #5aa886;
+    --twin-warn: #d9a13d;
+    --twin-stop: #e2554a;
+    --twin-info: #6fa8d4;
+    --twin-emph: #df8b46;
+    --twin-ord-0: #5b7a99;
+    --twin-ord-1: #5f9088;
+    --twin-ord-2: #c8a23f;
+    --twin-ord-3: #df8b46;
+    --twin-ord-4: #cf463c;
+  }
+}
+</style>
+<style>
+/* twin-sheet/1 — component sheet for generated mental twins, copied at
+   authoring time from skill/sheet/twin-sheet.css. Components reference ONLY
+   the neutral --twin-* interface; do not hand-roll parallel CSS here. */
+.twin {
+  --ts-micro: 0.625rem;
+  --ts-label: 0.6875rem;
+  --ts-body:  0.8125rem;
+  --ts-emph:  0.9375rem;
+  --ts-h2:    1.125rem;
+  --ts-h1:    1.375rem;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  font-family: var(--twin-font-mono);
+  font-size: var(--ts-body);
+  color: var(--twin-txt);
+  background: var(--twin-bg);
+  line-height: 1.5;
+}
+.twin[data-density="compact"]     { --g-row: var(--sp-1); --g-block: var(--sp-2); --g-sect: var(--sp-3); --p-card: var(--sp-3); }
+.twin[data-density="comfortable"] { --g-row: var(--sp-2); --g-block: var(--sp-3); --g-sect: var(--sp-5); --p-card: var(--sp-4); }
+
+.twin * { box-sizing: border-box; }
+.twin h1, .twin h2, .twin h3 { font-family: var(--twin-font-display); margin: 0; color: var(--twin-txt-bright); }
+.twin h1 { font-size: var(--ts-h1); font-weight: 600; }
+.twin h2 { font-size: var(--ts-h2); font-weight: 600; }
+.twin h3 { font-size: var(--ts-emph); font-weight: 600; }
+
+.tw-header { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--twin-line); background: var(--twin-panel); }
+.tw-header .tw-pin { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-badge { font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius); padding: 1px var(--sp-2);
+  color: var(--twin-txt-dim); }
+.tw-badge.live { color: var(--twin-ok); border-color: var(--twin-ok); }
+.tw-badge.fixture { color: var(--twin-warn); border-color: var(--twin-warn); }
+.tw-stamp { display: none; font-size: var(--ts-micro); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--twin-stop); border: 1px dashed var(--twin-stop); border-radius: var(--twin-radius);
+  padding: 1px var(--sp-2); }
+.tw-stamp.on { display: inline-block; }
+
+.tw-lamp { display: inline-flex; align-items: center; gap: var(--sp-1);
+  font-size: var(--ts-label); white-space: nowrap; }
+.tw-lamp::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--twin-line); }
+.tw-lamp.ok::before   { background: var(--twin-ok); }
+.tw-lamp.warn::before { background: var(--twin-warn); }
+.tw-lamp.stop::before { background: var(--twin-stop); }
+.tw-lamp.info::before { background: var(--twin-info); }
+.tw-lamp.emph::before { background: var(--twin-emph); }
+.tw-steps { display: inline-flex; gap: 3px; align-items: center; }
+.tw-steps i { width: 12px; height: 5px; border-radius: 2px; background: var(--twin-line); font-style: normal; }
+.tw-steps i.on-0 { background: var(--twin-ord-0); } .tw-steps i.on-1 { background: var(--twin-ord-1); }
+.tw-steps i.on-2 { background: var(--twin-ord-2); } .tw-steps i.on-3 { background: var(--twin-ord-3); }
+.tw-steps i.on-4 { background: var(--twin-ord-4); }
+.tw-steps .tw-steps-label { font-size: var(--ts-label); margin-left: var(--sp-1); }
+
+.tw-card { background: var(--twin-panel); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius-lg); padding: var(--p-card); }
+.tw-card > h3 { margin-bottom: var(--g-block); }
+.tw-grid { display: grid; gap: var(--g-sect); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+.tw-shelf { border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); overflow: hidden; }
+.tw-shelf > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline;
+  gap: var(--sp-2); padding: var(--g-block) var(--sp-3); font-family: var(--twin-font-display);
+  font-size: var(--ts-emph); font-weight: 600; color: var(--twin-txt-bright); }
+.tw-shelf > summary::-webkit-details-marker { display: none; }
+.tw-shelf > summary::before { content: "▸"; font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-shelf[open] > summary::before { content: "▾"; }
+.tw-shelf > summary .tw-count { font-size: var(--ts-label); font-weight: 400; color: var(--twin-txt-dim); }
+.tw-oprow { display: flex; align-items: baseline; gap: var(--sp-2); width: 100%;
+  padding: var(--g-row) var(--sp-3); border: 0; border-top: 1px solid var(--twin-line);
+  background: transparent; color: var(--twin-txt); font: inherit; text-align: left; cursor: pointer; }
+.tw-oprow:hover, .tw-oprow:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-oprow .tw-opname { font-weight: 600; white-space: nowrap; }
+.tw-oprow .tw-opnote { font-size: var(--ts-label); color: var(--twin-txt-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+.tw-opsurface { display: flex; flex-direction: column; gap: var(--g-block); }
+.tw-params { display: grid; gap: var(--g-row); }
+.tw-field { display: grid; gap: 2px; }
+.tw-field label { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-field input, .tw-field textarea, .tw-palette input {
+  font-family: var(--twin-font-mono); font-size: var(--ts-body); color: var(--twin-txt);
+  background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-2); width: 100%; }
+.tw-field input:focus-visible, .tw-field textarea:focus-visible, .tw-palette input:focus-visible {
+  outline: 2px solid var(--twin-accent); outline-offset: 1px; }
+.tw-btn { font-family: var(--twin-font-mono); font-size: var(--ts-body); cursor: pointer;
+  color: var(--twin-txt); background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-1) var(--sp-3); }
+.tw-btn:hover { border-color: var(--twin-accent); }
+.tw-btn.primary { border-color: var(--twin-accent); color: var(--twin-txt-bright); }
+.tw-btn.danger { border-color: var(--twin-stop); }
+.tw-btn:disabled { opacity: .45; cursor: default; }
+.tw-response { background: var(--twin-panel-2); border: 1px solid var(--twin-line);
+  border-radius: var(--twin-radius); padding: var(--sp-2) var(--sp-3);
+  font-size: var(--ts-body); white-space: pre-wrap; word-break: break-word;
+  max-height: 40vh; overflow: auto; margin: 0; }
+.tw-response.error { border-color: var(--twin-stop); }
+.tw-src { font-size: var(--ts-micro); color: var(--twin-txt-dim); text-transform: uppercase;
+  letter-spacing: .06em; }
+
+.tw-dialog { border: 1px solid var(--twin-warn); border-radius: var(--twin-radius-lg);
+  background: var(--twin-panel); padding: var(--p-card); display: flex; flex-direction: column;
+  gap: var(--g-block); max-width: 560px; }
+.tw-dialog.destructive { border-color: var(--twin-stop); }
+.tw-dialog .tw-consequence { font-size: var(--ts-label); color: var(--twin-txt-dim); }
+.tw-dialog .tw-composed { max-height: 30vh; overflow: auto; }
+.tw-dialog .tw-actions { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+
+.tw-table { width: 100%; border-collapse: collapse; font-size: var(--ts-body); }
+.tw-table th { font-size: var(--ts-label); text-align: left; color: var(--twin-txt-dim);
+  font-weight: 600; padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line); }
+.tw-table td { padding: var(--g-row) var(--sp-2); border-bottom: 1px solid var(--twin-line);
+  vertical-align: baseline; }
+
+.tw-log { display: flex; flex-direction: column-reverse; gap: var(--g-row);
+  max-height: 32vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.tw-log li { display: flex; gap: var(--sp-2); align-items: baseline;
+  font-size: var(--ts-label); border-top: 1px solid var(--twin-line); padding-top: var(--g-row); }
+.tw-log time { font-size: var(--ts-micro); color: var(--twin-txt-dim); white-space: nowrap; }
+
+.tw-palette { position: relative; }
+.tw-palette-list { position: absolute; z-index: 30; left: 0; right: 0; margin: 2px 0 0;
+  padding: var(--sp-1); list-style: none; background: var(--twin-panel);
+  border: 1px solid var(--twin-line); border-radius: var(--twin-radius-lg);
+  max-height: 40vh; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.tw-palette-list li { border-radius: var(--twin-radius); }
+.tw-palette-list button { display: flex; gap: var(--sp-2); align-items: baseline; width: 100%;
+  padding: var(--g-row) var(--sp-2); border: 0; background: transparent; color: var(--twin-txt);
+  font: inherit; text-align: left; cursor: pointer; border-radius: var(--twin-radius); }
+.tw-palette-list button:hover, .tw-palette-list button:focus-visible { background: var(--twin-panel-2); outline: none; }
+.tw-palette-list .tw-facet { font-size: var(--ts-micro); color: var(--twin-txt-dim);
+  margin-left: auto; white-space: nowrap; }
+
+.tw-page { max-width: 900px; margin: 0 auto; padding: var(--g-sect) var(--sp-5) var(--sp-7);
+  display: flex; flex-direction: column; gap: var(--g-sect); }
+.tw-row { display: flex; gap: var(--g-block); align-items: center; flex-wrap: wrap; }
+.tw-spacer { flex: 1; }
+</style>
+</head>
+<body class="twin" data-density="comfortable" style="margin:0">
+<div id="hdr"></div>
+<main class="tw-page">
+
+  <section class="tw-card">
+    <h3>Find any function</h3>
+    <span class="tw-src">tier-0 palette · every catalogued op</span>
+    <div id="palette"></div>
+  </section>
+
+  <section>
+    <h3 style="margin-bottom:var(--sp-2)">Operations</h3>
+    <p class="tw-src">tier-2 rack — every catalogued op (add/list/get/done/remove); writes
+      confirm before sending · plus quick actions bound to whatever notes.list
+      currently returns, so the same real done/remove ops are one click away
+      with the id already filled in</p>
+    <div id="rack" style="display:flex;flex-direction:column;gap:var(--g-block)"></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Op surface</h3>
+    <span class="tw-src">opened from a rack row or the palette</span>
+    <div id="surface"><p class="tw-src">no function open</p></div>
+  </section>
+
+  <section class="tw-card">
+    <h3>Call log</h3>
+    <div id="log"></div>
+  </section>
+
+</main>
+
+<script>
+/* twin-sheet/1 — DOM construction helpers for the component sheet, copied at
+   authoring time from skill/sheet/twin-sheet.js. Vanilla, framework-free,
+   data-driven. Components render server-declared state; they never compute a
+   verdict. Gating: a function descriptor with mutating !== false always goes
+   through the confirm flow (fail-closed). Additive under twin-sheet/1: opRow
+   emits data-op + data-gesture, and opSurface's param inputs emit data-param
+   — the Control grammar (skill/SKILL.md's "Control grammar" section), what
+   makes a control drivable by its {op,params,gesture} contract rather than
+   by its visible label or form. */
+(function (global) {
+  "use strict";
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) {
+      n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+
+  function lamp(word, role) {
+    return el("span", { class: "tw-lamp " + (role || ""), role: "status",
+      "aria-label": word }, [word]);
+  }
+
+  function mutLamp(fn) {
+    if (fn.mutating === false) return lamp("read", "ok");
+    if (fn.destructive) return lamp("destructive", "stop");
+    return lamp("mutates", "warn");
+  }
+
+  function steps(n, active, label) {
+    var wrap = el("span", { class: "tw-steps", role: "img", "aria-label": label });
+    for (var i = 0; i < n; i++)
+      wrap.appendChild(el("i", { class: i <= active ? "on-" + i : "" }));
+    wrap.appendChild(el("span", { class: "tw-steps-label", text: label }));
+    return wrap;
+  }
+
+  function header(opts) {
+    return el("header", { class: "tw-header" }, [
+      el("h1", { text: opts.title }),
+      el("span", { class: "tw-pin", text: opts.pin || "" }),
+      el("span", { class: "tw-badge " + (opts.live ? "live" : "fixture"),
+        text: opts.live ? "live" : "fixture-backed" }),
+      el("span", { class: "tw-stamp" + (opts.stamped ? " on" : ""),
+        text: "design-unverified" })
+    ]);
+  }
+
+  function confirmGate(fn, params, opts, onConfirm, onCancel) {
+    var composed = JSON.stringify(params, null, 2);
+    var okBtn = el("button", { class: "tw-btn " + (fn.destructive ? "danger" : "primary"),
+      text: "Confirm" });
+    var dialog = el("div", { class: "tw-dialog" + (fn.destructive ? " destructive" : ""),
+      role: "alertdialog", "aria-label": "Confirm " + fn.name });
+    dialog.appendChild(el("h3", { text: "Confirm: " + fn.name }));
+    dialog.appendChild(el("p", { class: "tw-consequence",
+      text: fn.consequence || "This call is a recorded action on the target." }));
+    dialog.appendChild(el("pre", { class: "tw-response tw-composed", text: composed }));
+    if (opts && opts.typedName) {
+      okBtn.disabled = true;
+      var gateField = el("div", { class: "tw-field" }, [
+        el("label", { text: "Type the function name to enable confirm" }),
+        el("input", { type: "text", oninput: function (e) {
+          okBtn.disabled = e.target.value !== fn.name;
+        } })
+      ]);
+      dialog.appendChild(gateField);
+    }
+    okBtn.addEventListener("click", function () { onConfirm(params, dialog); });
+    dialog.appendChild(el("div", { class: "tw-actions" }, [
+      el("button", { class: "tw-btn", text: "Cancel",
+        onclick: function () { onCancel(dialog); } }),
+      okBtn
+    ]));
+    return dialog;
+  }
+
+  function opSurface(fn, opts) {
+    var root = el("section", { class: "tw-opsurface",
+      "aria-label": fn.name });
+    root.appendChild(el("h2", { text: fn.name }));
+    if (fn.note) root.appendChild(el("p", { class: "tw-src", text: fn.note }));
+    var form = el("div", { class: "tw-params" });
+    var inputs = {};
+    (fn.params || []).forEach(function (p) {
+      var input = el("input", { type: "text", "aria-label": p, "data-param": p });
+      inputs[p] = input;
+      form.appendChild(el("div", { class: "tw-field" }, [
+        el("label", { text: p }), input]));
+    });
+    root.appendChild(form);
+    var slot = el("div");
+    var runBtn = el("button", { class: "tw-btn primary",
+      text: fn.mutating === false ? "Run" : "Compose…" });
+    function renderResponse(res) {
+      var pre = el("pre", { class: "tw-response" + (res.ok ? "" : " error"),
+        text: res.body });
+      slot.replaceChildren(el("span", { class: "tw-src",
+        text: res.ok ? "response · verbatim" : "refused · verbatim" }), pre);
+    }
+    runBtn.addEventListener("click", function () {
+      var params = {};
+      Object.keys(inputs).forEach(function (p) {
+        var v = inputs[p].value;
+        if (v !== "") { try { params[p] = JSON.parse(v); } catch (_) { params[p] = v; } }
+      });
+      if (fn.mutating === false) {
+        opts.dispatch(fn, params).then(renderResponse);
+        return;
+      }
+      var dialog = confirmGate(fn, params,
+        { typedName: !!fn.destructive && opts.typedName !== false },
+        function (p, d) {
+          d.remove();
+          opts.dispatch(fn, p).then(function (res) {
+            renderResponse(res);
+            if (opts.log) opts.log(fn, p, res);
+          });
+        },
+        function (d) { d.remove(); if (opts.onCancel) opts.onCancel(fn); });
+      slot.replaceChildren(dialog);
+    });
+    root.appendChild(el("div", { class: "tw-row" }, [runBtn]));
+    root.appendChild(slot);
+    return root;
+  }
+
+  function opRow(fn, onOpen) {
+    return el("button", { class: "tw-oprow", "data-op": fn.name,
+      "data-gesture": "activate", onclick: function () { onOpen(fn); } }, [
+      el("span", { class: "tw-opname", text: fn.name }),
+      el("span", { class: "tw-opnote", text: fn.note || "" }),
+      mutLamp(fn)
+    ]);
+  }
+
+  function shelf(facade, fns, onOpen, open) {
+    var d = el("details", { class: "tw-shelf" });
+    if (open) d.setAttribute("open", "");
+    d.appendChild(el("summary", {}, [
+      facade, el("span", { class: "tw-count", text: fns.length + " ops" })]));
+    fns.forEach(function (fn) { d.appendChild(opRow(fn, onOpen)); });
+    return d;
+  }
+
+  function palette(catalogue, onOpen) {
+    var wrap = el("div", { class: "tw-palette" });
+    var list = el("ul", { class: "tw-palette-list", hidden: "" });
+    var input = el("input", { type: "search",
+      placeholder: "Find any function — name, note, facade",
+      "aria-label": "Search all functions" });
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      list.replaceChildren();
+      if (!q) { list.hidden = true; return; }
+      var hits = catalogue.filter(function (fn) {
+        return (fn.name + " " + (fn.note || "") + " " + (fn.facade || ""))
+          .toLowerCase().indexOf(q) !== -1;
+      }).slice(0, 40);
+      hits.forEach(function (fn) {
+        list.appendChild(el("li", {}, [el("button", {
+          onclick: function () { list.hidden = true; input.value = ""; onOpen(fn); } }, [
+          el("span", { class: "tw-opname", text: fn.name }),
+          el("span", { class: "tw-opnote", text: fn.note || "" }),
+          el("span", { class: "tw-facet", text: fn.facade || "" })])]));
+      });
+      list.hidden = hits.length === 0;
+    });
+    wrap.appendChild(input); wrap.appendChild(list);
+    return wrap;
+  }
+
+  function logList() { return el("ul", { class: "tw-log", "aria-label": "Call log" }); }
+  function logEntry(list, fn, params, res) {
+    list.appendChild(el("li", {}, [
+      el("time", { text: new Date().toISOString() }),
+      el("span", { class: "tw-opname", text: fn.name }),
+      lamp(res ? (res.ok ? "answered" : "refused") : "NOT SENT", res ? (res.ok ? "ok" : "stop") : "stop"),
+      el("span", { class: "tw-opnote", text: JSON.stringify(params) })
+    ]));
+  }
+
+  global.TwinSheet = { el: el, lamp: lamp, mutLamp: mutLamp, steps: steps,
+    header: header, opSurface: opSurface, opRow: opRow, shelf: shelf,
+    palette: palette, confirmGate: confirmGate, logList: logList, logEntry: logEntry };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>
+(function () {
+"use strict";
+var T = window.TwinSheet;
+var $ = function (id) { return document.getElementById(id); };
+
+/* ---- identity / pin ---- */
+var hdr = T.header({ title: "Notes Twin",
+  pin: "connecting… · twin-sheet/1", live: true, stamped: false });
+$("hdr").appendChild(hdr);
+var pinEl = hdr.querySelector(".tw-pin");
+
+/* ---- transport. Single facade, no auth: POST {tool:"notes",
+   args:{op,params}} to /tool, same-origin, served by notes_bridge.mjs. ---- */
+function call(tool, args) {
+  return fetch("/tool", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool: tool, args: args })
+  }).then(function (r) { return r.text().then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (_) {}
+      var refused = !r.ok || (j && (j.error !== undefined || j.ok === false));
+      return { ok: !refused, body: j ? JSON.stringify(j, null, 2) : t, json: j };
+    });
+  }).catch(function (e) { return { ok: false, body: "bridge unreachable: " + e, json: null }; });
+}
+
+/* ---- the mental model: notes has one facade, five ops, straight from the
+   source manual (testing/backend/sources/notes/manual.md) — no live `help`
+   introspection exists for this backend, so the catalogue is declared here
+   rather than fetched. ---- */
+var CONSEQ = "This call changes real state in the notes store.";
+var catalogue = [
+  { facade: "notes", op: "add", name: "notes.add",
+    note: "add a note · required: text", params: ["text"],
+    mutating: true, consequence: CONSEQ },
+  { facade: "notes", op: "list", name: "notes.list",
+    note: "list every note", params: [], mutating: false },
+  { facade: "notes", op: "get", name: "notes.get",
+    note: "read one note · required: id", params: ["id"], mutating: false },
+  { facade: "notes", op: "done", name: "notes.done",
+    note: "mark a note done · required: id", params: ["id"],
+    mutating: true, consequence: CONSEQ },
+  { facade: "notes", op: "remove", name: "notes.remove",
+    note: "remove a note · required: id · destructive", params: ["id"],
+    mutating: true, destructive: true,
+    consequence: "Permanently removes the note. Not undoable." }
+];
+function opByOp(op) { return catalogue.filter(function (c) { return c.op === op; })[0]; }
+
+/* ---- log ---- */
+var log = T.logList();
+$("log").appendChild(log);
+
+/* ---- op surface, driven from a rack row, a quick-action button, or the
+   palette. dispatch() always re-lists afterward so the quick-actions panel
+   never shows stale ids — the twin never renders a state it hasn't just
+   asked the real backend for. ---- */
+function dispatch(fn, params) {
+  return call("notes", { op: fn.op, params: params }).then(function (res) {
+    refreshNotes();
+    return res;
+  });
+}
+function openSurface(fn) {
+  $("surface").replaceChildren(T.opSurface(fn, {
+    dispatch: dispatch,
+    log: function (f, p, r) { T.logEntry(log, f, p, r); },
+    onCancel: function (f) { T.logEntry(log, f, {}, null); }
+  }));
+  $("surface").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ---- quick actions: one row per note currently on file, "done" and
+   "remove" buttons that call the SAME catalogued ops with the id already
+   filled in — a real, additional, data-driven control onto the same two
+   nodes, not a shortcut that bypasses them (compare examples/rvnd-3/twin.html's
+   approvals-inbox decide buttons, same pattern). ---- */
+var notesCache = [];
+function quickBtn(op, id) {
+  var fn = opByOp(op);
+  return T.el("button", { class: "tw-btn" + (op === "remove" ? " danger" : ""),
+    text: op + " · " + id, onclick: function () {
+      var d = T.confirmGate(fn, { id: id }, { typedName: !!fn.destructive }, function (p, dlg) {
+        dlg.remove();
+        dispatch(fn, p).then(function (res) { T.logEntry(log, fn, p, res); });
+      }, function (dlg) { dlg.remove(); T.logEntry(log, fn, { id: id }, null); });
+      $("surface").replaceChildren(d);
+      $("surface").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } });
+}
+function quickActionsPanel() {
+  var wrap = T.el("div", { class: "tw-card" }, [
+    T.el("h3", { text: "Quick actions on existing notes" }),
+    T.el("span", { class: "tw-src", text: "live · notes.list, then notes.done / notes.remove per row" })
+  ]);
+  if (!notesCache.length) {
+    wrap.appendChild(T.el("p", { class: "tw-src", text: "no notes yet — use notes.add below" }));
+    return wrap;
+  }
+  notesCache.forEach(function (n) {
+    wrap.appendChild(T.el("div", { class: "tw-row" }, [
+      T.el("span", { class: "tw-opname", text: n.id }),
+      T.el("span", { class: "tw-opnote", text: n.text + (n.done ? " (done)" : "") }),
+      quickBtn("done", n.id),
+      quickBtn("remove", n.id)
+    ]));
+  });
+  return wrap;
+}
+
+/* ---- rack: quick-actions panel first, then the full tier-2 catalogue
+   shelf — one shelf, one facade, matching the source manual exactly. ---- */
+function buildRack() {
+  var rack = $("rack");
+  rack.replaceChildren();
+  rack.appendChild(quickActionsPanel());
+  rack.appendChild(T.shelf("notes", catalogue, openSurface, true));
+}
+
+function refreshNotes() {
+  return call("notes", { op: "list", params: {} }).then(function (res) {
+    if (res.ok && res.json) notesCache = res.json.notes || [];
+    buildRack();
+    return res;
+  });
+}
+
+/* ---- boot: notes has no auth and no session to open, so the twin connects
+   as soon as its script runs — there is no #tok field or #connect button.
+   (This is exactly why the live-gate harness needs a per-adapter bootTwin
+   hook: RVND's twin waits to be told to connect, this one doesn't.) ---- */
+function boot() {
+  fetch("/info").then(function (r) { return r.json(); }).then(function (info) {
+    pinEl.textContent = (info.name || "notes") + " · " +
+      (info.generated ? "generated" : "") + " · twin-sheet/1";
+  }).catch(function () {});
+  refreshNotes().then(function () {
+    $("palette").replaceChildren(T.palette(catalogue, openSurface));
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>

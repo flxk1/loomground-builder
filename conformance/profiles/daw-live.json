@@ -1,0 +1,5 @@
+{
+  "mode": "live",
+  "adapter": "../../testing/live/adapters/daw.mjs",
+  "all": false
+}

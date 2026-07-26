@@ -1,0 +1,4 @@
+{
+  "mode": "backend",
+  "adapter": "../../testing/backend/adapters/notes.mjs"
+}

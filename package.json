@@ -1,0 +1,45 @@
+{
+  "name": "loomground-builder",
+  "version": "0.3.2",
+  "description": "The mental-model-based designer: reads a tool's machine-readable surface and generates a twin UI of it.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "files": [
+    ".claude-plugin/",
+    "bin/",
+    "conformance/",
+    "examples/",
+    "meta/",
+    "release/",
+    "skill/",
+    "specs/",
+    "testing/",
+    "tools/"
+  ],
+  "scripts": {
+    "test": "node skill/sheet/gate.mjs",
+    "test:live": "node testing/live/live-gate.mjs",
+    "test:live:all": "node testing/live/live-gate.mjs --all",
+    "test:live:notes": "TWIN_ADAPTER=./adapters/notes.mjs node testing/live/live-gate.mjs",
+    "test:live:notes:all": "TWIN_ADAPTER=./adapters/notes.mjs node testing/live/live-gate.mjs --all",
+    "test:live:url": "TWIN_ADAPTER=./adapters/urlshortener.mjs node testing/live/live-gate.mjs",
+    "test:live:patch": "TWIN_ADAPTER=./adapters/patch.mjs node testing/live/live-gate.mjs",
+    "test:live:daw": "TWIN_ADAPTER=./adapters/daw.mjs node testing/live/live-gate.mjs",
+    "test:live:room": "TWIN_ADAPTER=./adapters/room.mjs node testing/live/live-gate.mjs",
+    "test:d6:room": "node testing/live/room-d6.mjs",
+    "test:backend": "node testing/backend/backend-gate.mjs",
+    "test:backend:url": "BACKEND_ADAPTER=./adapters/urlshortener.mjs node testing/backend/backend-gate.mjs",
+    "test:backend:jobqueue": "BACKEND_ADAPTER=./adapters/jobqueue.mjs node testing/backend/backend-gate.mjs",
+    "test:backend:all": "node testing/backend/backend-gate.mjs && BACKEND_ADAPTER=./adapters/inventory.mjs node testing/backend/backend-gate.mjs && BACKEND_ADAPTER=./adapters/urlshortener.mjs node testing/backend/backend-gate.mjs && BACKEND_ADAPTER=./adapters/jobqueue.mjs node testing/backend/backend-gate.mjs",
+    "test:security": "node --test testing/security/adapter-loading.test.mjs",
+    "test:supply-chain": "python3 tools/supply_chain_gate.py --self-test && python3 tools/supply_chain_gate.py",
+    "test:release:teeth": "node testing/release/teeth-gate.mjs",
+    "test:release:package": "node testing/release/package-gate.mjs",
+    "test:release:audit": "python3 -m release.gate --audit",
+    "test:release": "python3 -m release.gate",
+    "conformance": "node bin/conformance.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
