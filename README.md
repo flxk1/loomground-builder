@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2026 flxk1 -->
 
-# tool-designer
+# loomground-builder
 
 The mental-model-based designer — internally the **mental twin**: a builder
 that reads a tool's machine-readable surface and generates a reproduction of
@@ -28,8 +28,8 @@ pack; RVND is the first case.
   universal builder that can generate a twin for any tool, of which the
   patchbay-style governance console is the first and reference case.
 
-Status: home repository created ahead of content. The working drafts and the
-current build are imported here once they are ready to land.
+Status: shipping — v0.3.2. The M1–M7 release gates, the twin-sheet contract, the
+backend-from-model gate, and the example twins are landed and run.
 
 ## Release authority
 

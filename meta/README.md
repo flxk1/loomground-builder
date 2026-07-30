@@ -1,4 +1,4 @@
-# meta — meta-language core + Versum ingest round-trip (M1–M4, M7 seam)
+# meta — meta-language core + Versum ingest round-trip (M1–M7)
 
 `(surface, tier) → {NDSystem, SemanticMapping, SystemAdapter}`, generated
 against Versum's *real* contracts. M4 lowers the generated projection into
@@ -22,7 +22,12 @@ meta/
   ingest.py      GraphProjection -> Ingest Subgraph; PolicyError -> quarantine
   store.py       scoped writer/read lens over Versum concepts + semantic edges
   gate.py        the M1-M3 DoD gate (run with `python -m meta.gate`)
-  gate_m4.py     M4 round-trip + teeth and M7 fail-closed gate
+  gate_m4.py     M4 round-trip: Ingest Subgraph -> Versum store -> read-back
+  gate_m5.py     M5: persisted Versum graph -> neutral reasoning edges -> Solver
+  gate_m6.py     M6: one notes object chain ending in the live twin witness
+  gate_m7.py     M7 fail-closed gate: quarantine stops writes, Solver calls,
+                 builder selection and twin runs
+  reasoning.py   builder-owned composition of persisted Versum edges with Solver
   surfaces/
     notes.json   CRUD surface, zero declared inter-op relations (contrast case)
     patch.json   connections-shaped surface (feeds/precedes/sibling relations)
