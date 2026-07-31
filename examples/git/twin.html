@@ -734,7 +734,8 @@ above maps to exactly one row here; no tool is excluded from scope.</p>
 "use strict";
 const FIX = JSON.parse(document.getElementById("fixtures").textContent);
 const REPO_PATH = "/private/tmp/loomground-builder-example/scratchpad/sandbox-repo";
-const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* ---- read panels: fixture text verbatim ---- */
 const READ_PANELS = [
@@ -806,17 +807,17 @@ for (const name of MUTATING) {
     const ptype = pdef.type || (pdef.anyOf ? pdef.anyOf.map(x => x.type).join("|") : "value");
     const prefill = pname === "repo_path" ? REPO_PATH : "";
     fieldsHtml +=
-      '<div class="field"><label for="f-' + name + '-' + pname + '">' +
+      '<div class="field"><label for="f-' + esc(name) + '-' + esc(pname) + '">' +
       esc(pname) + " (" + esc(String(ptype)) + (req ? ", required" : ", optional") + ")</label>" +
-      '<input id="f-' + name + '-' + pname + '" data-param="' + esc(pname) + '"' +
+      '<input id="f-' + esc(name) + '-' + esc(pname) + '" data-param="' + esc(pname) + '"' +
       (req ? " data-required=\"1\"" : "") +
       ' value="' + esc(prefill) + '"></div>';
   }
 
   const destructiveExtra = gate.destructive
-    ? '<div class="field"><label for="f-' + name + '-typecheck">This operation is annotated ' +
+    ? '<div class="field"><label for="f-' + esc(name) + '-typecheck">This operation is annotated ' +
       "destructive. Type the tool name <b>" + esc(name) + "</b> to enable confirm.</label>" +
-      '<input id="f-' + name + '-typecheck" data-typecheck="' + esc(name) + '" autocomplete="off"></div>'
+      '<input id="f-' + esc(name) + '-typecheck" data-typecheck="' + esc(name) + '" autocomplete="off"></div>'
     : "";
 
   card.innerHTML =
@@ -828,7 +829,7 @@ for (const name of MUTATING) {
     '<div class="pbody">' +
     '<p class="desc">' + esc(t.description) + "</p>" +
     '<button type="button" data-open="' + esc(name) + '">Prepare ' + esc(name) + "…</button>" +
-    '<div class="confirmcard" id="cc-' + name + '" hidden>' +
+    '<div class="confirmcard" id="cc-' + esc(name) + '" hidden>' +
     "<h3>Confirm " + esc(name) + "</h3>" +
     '<p class="consequence">Operation: <b>' + esc(name) + "</b> — " + esc(t.description) + "." +
     (gate.destructive ? " <b>This operation is destructive.</b>" : "") + "</p>" +
@@ -842,7 +843,7 @@ for (const name of MUTATING) {
     '" data-confirm="' + esc(name) + '"' + (gate.destructive ? " disabled" : "") + ">" +
     "Confirm " + esc(name) + "</button>" +
     "</div>" +
-    '<div class="result" id="res-' + name + '" hidden></div>' +
+    '<div class="result" id="res-' + esc(name) + '" hidden></div>' +
     "</div></div>";
   opRoot.appendChild(card);
 }

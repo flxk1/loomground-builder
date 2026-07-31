@@ -241,7 +241,8 @@ function payloadText(name) {
 }
 function isErrorFx(name) { return !!FX[name].response.result.isError; }
 function esc(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s).replace(/[&<>"']/g, c =>
+    ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 }
 function chip(name) { return '<span class="chip">fixture: ' + esc(name) + "</span>"; }
 function verbatimBlock(name, heading) {

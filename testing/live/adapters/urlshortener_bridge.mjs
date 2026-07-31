@@ -42,7 +42,7 @@ export async function start() {
     }
     if (req.method === "POST" && req.url === "/tool") {
       let body = "";
-      req.on("data", (c) => { body += c; });
+      req.on("data", (c) => { body += c; if (body.length > 1048576) req.destroy(); }); // cap loopback test-bridge body
       req.on("end", () => {
         let parsed;
         try { parsed = JSON.parse(body || "{}"); } catch { parsed = null; }
