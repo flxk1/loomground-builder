@@ -6,7 +6,7 @@ The structural gate is self-contained. From the repo root:
 
 ```
 npm install     # fetches jsdom (pinned in package.json; node_modules is git-ignored)
-npm test        # runs skill/sheet/gate.mjs — the twin-sheet/1 contract, 21 assertions
+npm test        # runs skill/sheet/gate.mjs — the twin-sheet/1 contract, 23 assertions
 ```
 
 `npm test` exits non-zero on any failed assertion. This gate covers structure
@@ -25,9 +25,11 @@ npm run test:live:all  # + completeness: every catalogued op has a control, and
 
 It runs through a per-target adapter (`testing/live/adapters/`) and **skips
 cleanly (exit 0) when no target backend is present**, so a clean checkout still
-gates. The RVND adapter boots `serve.py` on an ephemeral port with a throwaway
-workspace (`RVND_APP_DIR` overrides the path); its witness is the append-only
-signed audit chain. The SKILL.md visual loop is a further, separate step.
+gates. The in-repo adapters (`testing/live/adapters/`: daw, notes, patch, room,
+urlshortener) are the concrete examples; the RVND adapter, which boots a real
+`serve.py` against a throwaway workspace and witnesses the append-only signed
+audit chain, lives downstream in `loomground-patchbay`, not here. The SKILL.md
+visual loop is a further, separate step.
 
 The backend gate — the inverse (`specs/backend-from-model.md`) — proves a
 backend *generated from a source* conforms to it:
@@ -37,13 +39,14 @@ npm run test:backend       # default source; per-source adapter
                            # (testing/backend/adapters/): B0 provenance, B1
                            # surface conformance, B1b mutation class, B2 the
                            # source's behavioural vectors, B3 self-consistency
-npm run test:backend:all   # both reference sources through the same harness
+npm run test:backend:all   # all four reference sources through the same harness
 ```
 
-Two reference sources, gated by the same unchanged harness (which is how it
-proves it is source-agnostic): `sources/notes/` (a CRUD-shaped store) and
+Four reference sources, gated by the same unchanged harness (which is how it
+proves it is source-agnostic): `sources/notes/` (a CRUD-shaped store),
 `sources/inventory/` (numeric state with a `take` that refuses when stock is
-insufficient). Each is a manual, the scaffold generated from it, a shipped
+insufficient), `sources/urlshortener/`, and `sources/jobqueue/`. Each is a
+manual, the scaffold generated from it, a shipped
 `provenance.json` stamp, and a `vectors.json` of given/when/then behaviours the
 gate runs chunked by domain.
 

@@ -223,6 +223,6 @@ Doctrine section). Requested state is never shown as granted.
   (`npm test`).
 - `generate-backend.md` - the inverse direction: manual → generated backend,
   when the source is a manual rather than a running system.
-- `sheet/twin-sheet.css`, `sheet/twin-sheet.js`, and
-  `../specs/twin-component-sheet-spec.md` - the shipped tier-1/tier-2
-  component substrate and its contract.
+- `sheet/twin-sheet.css`, `sheet/twin-sheet.js`, and their contract gate
+  `sheet/gate.mjs` (the `twin-sheet/1` contract, run with `npm test`) - the
+  shipped tier-1/tier-2 component substrate and its contract.
